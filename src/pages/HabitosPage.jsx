@@ -1,0 +1,97 @@
+import React, { useState } from 'react';
+import { Target, Flame, CheckCircle2, TrendingUp, Check, Plus } from 'lucide-react';
+import { StatsCard, ProgressBar } from '../components/Common';
+import { Modal } from '../components/Modal';
+import { NewHabitModal } from '../components/Modals';
+import { useAppData } from '../context/DataContext';
+
+export function HabitosPage() {
+    const { habits, addHabitLog } = useAppData();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const todayStr = "2026-02-17";
+
+    const completedToday = habits.filter(h => h.logs.some(l => l.data === todayStr)).length;
+    const monthRate = habits.reduce((a, h) => a + h.metaMensal, 0) > 0
+        ? Math.round(habits.reduce((a, h) => a + h.logs.length, 0) / habits.reduce((a, h) => a + h.metaMensal, 0) * 100)
+        : 0;
+
+    const daysInMonth = Array.from({ length: 28 }, (_, i) => i + 1);
+    const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const firstDay = new Date(2026, 1, 1).getDay();
+
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hábitos</h1>
+                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Construa hábitos saudáveis e acompanhe seu progresso</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+                    <Plus size={16} /> Novo Hábito
+                </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+                <StatsCard title="Total de Hábitos" value={habits.length} icon={Target} iconColor="var(--primary)" bgColor="rgba(59,130,246,0.1)" />
+                <StatsCard title="Sequência" value="5 dias" icon={Flame} iconColor="#f59e0b" bgColor="rgba(245,158,11,0.1)" />
+                <StatsCard title="Completos Hoje" value={`${completedToday}/${habits.length}`} icon={CheckCircle2} iconColor="#22c55e" bgColor="rgba(34,197,94,0.1)" />
+                <StatsCard title="Taxa do Mês" value={`${monthRate}%`} icon={TrendingUp} iconColor="#06b6d4" bgColor="rgba(6,182,212,0.1)" />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+                <div className="card" style={{ padding: 20 }}>
+                    <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Calendário — Fevereiro 2026</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+                        {weekdays.map(d => <div key={d} style={{ textAlign: "center", fontSize: 11, color: "var(--text-dim)", padding: "6px 0" }}>{d}</div>)}
+                        {Array.from({ length: firstDay }, (_, i) => <div key={`e${i}`} />)}
+                        {daysInMonth.map(day => {
+                            const isToday = day === 17;
+                            return (
+                                <div key={day} style={{ aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8, fontSize: 13, fontWeight: isToday ? 700 : 400, background: isToday ? "var(--primary)" : "var(--bg-secondary)", color: isToday ? "white" : "var(--text-muted)", cursor: "pointer", transition: "all 0.2s" }}>
+                                    {day}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div className="card" style={{ padding: 20 }}>
+                    <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Meus Hábitos</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        {habits.map(h => {
+                            const done = h.logs.some(l => l.data === todayStr);
+                            const progress = h.metaMensal > 0 ? Math.min((h.logs.length / h.metaMensal) * 100, 100) : 0;
+                            return (
+                                <div key={h.id} className="card" style={{ padding: 14 }}>
+                                    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                                        <button onClick={() => addHabitLog(h.id, todayStr)} style={{ width: 32, height: 32, borderRadius: "50%", border: done ? "none" : "1px solid var(--border)", background: done ? "#22c55e" : "var(--bg-secondary)", color: done ? "white" : "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, transition: "all 0.2s" }}>
+                                            <Check size={14} />
+                                        </button>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                <span style={{ fontWeight: 600, fontSize: 14 }}>{h.icone} {h.titulo}</span>
+                                                {done && <Flame size={14} color="#f59e0b" />}
+                                            </div>
+                                            {h.descricao && <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{h.descricao}</p>}
+                                            <div style={{ marginTop: 8 }}>
+                                                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                                    <span style={{ fontSize: 11, color: "var(--text-dim)" }}>{h.logs.length} / {h.metaMensal} este mês</span>
+                                                    <span style={{ fontSize: 11, color: "var(--primary)", fontWeight: 600 }}>{Math.round(progress)}%</span>
+                                                </div>
+                                                <ProgressBar value={progress} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Novo Hábito">
+                <NewHabitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            </Modal>
+        </div>
+    );
+}

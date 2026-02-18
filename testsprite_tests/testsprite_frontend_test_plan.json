@@ -1,0 +1,556 @@
+[
+  {
+    "id": "TC001",
+    "title": "Gemini chat message produces a visible AI response (basic happy path)",
+    "description": "Verifies a user can select Gemini, save an API key, send a message, and see an AI response appear in the chat.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"{{GEMINI_API_KEY}}\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Hello! Summarize what Orbis can do in one sentence.\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an assistant response message is visible in the conversation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Orbis\" is visible within the assistant response"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Gemini response includes JSON actions and action button is clickable",
+    "description": "Verifies that when the assistant returns JSON actions, the UI shows an actionable control and clicking it reveals execution details or output.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"{{GEMINI_API_KEY}}\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Return a JSON action I can click (include an action name and short parameters).\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"action\" is visible in the assistant response area"
+      },
+      {
+        "type": "action",
+        "description": "Click the first visible action button shown in the assistant response"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Details\" is visible or verify an action result/output panel is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Automatic web search trigger from Zhipu response enriches the final answer",
+    "description": "Verifies that a Zhipu response that triggers web_search leads to visible search results and an enriched assistant response.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Zhipu\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"{{ZHIPU_API_KEY}}\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Research: What are the latest stable versions of React and Vite? Use web_search.\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"search\" is visible in the conversation (such as a web search status, web_search label, or similar)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a section showing search results is visible (such as results list, sources, or links)"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Manual web search from Gemini appends results to the conversation",
+    "description": "Verifies that a user can manually trigger web search after sending a message and see search results appended to the assistant output.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"{{GEMINI_API_KEY}}\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Find recent news about React releases.\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "action",
+        "description": "Click \"Search\" in the chat UI"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a visible \"Search results\" area appears or verify a list of sources/results is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Invalid SiliconFlow API key shows authentication error and recovery suggestion",
+    "description": "Verifies that saving an invalid SiliconFlow key and sending a message displays an authentication error and guidance to re-enter keys.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"SiliconFlow\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"INVALID_KEY_12345\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Hello\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"authentication\" is visible or verify text \"API key\" and \"invalid\" are visible in an error message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"re-enter\" is visible or verify text \"Update\" / \"Save API Key\" guidance is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Gemini tool-refusal warning and force-tool-usage retry produces JSON actions",
+    "description": "Verifies the UI surfaces a model refusal to use tools, allows enabling a force heuristic, and then produces a response with JSON actions after resending.",
+    "category": "Chat Assistant",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"{{GEMINI_API_KEY}}\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"Use an external tool now to gather information, then return a JSON action.\" into the chat input"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"refuse\" is visible or verify text \"tool\" and \"cannot\" are visible in the assistant response/warning area"
+      },
+      {
+        "type": "action",
+        "description": "Toggle \"Force tool usage\" on"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Send\" (or click the UI control to resend the same message)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"action\" is visible in the newest assistant response"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Provider switching updates the visible provider selection and preserves chat usability",
+    "description": "Verifies that switching between providers updates the selected provider in the UI and the chat input remains usable.",
+    "category": "Chat Assistant",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Gemini\" is visible as the selected provider"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Zhipu\" as the AI Provider"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Zhipu\" is visible as the selected provider"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Test message after switching provider.\" into the chat input"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Test message after switching provider.\" is visible in the chat input"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Saving API key with empty input shows validation or prevents save",
+    "description": "Verifies the UI handles an attempt to save an empty API key by showing a visible validation message or preventing the save action.",
+    "category": "Chat Assistant",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Select \"Gemini\" as the AI Provider"
+      },
+      {
+        "type": "action",
+        "description": "Fill \"\" into the API Key field"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Save API Key\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"required\" is visible or verify text \"API key\" and \"enter\" are visible as a validation message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the API Key field is still visible for editing"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Create a task via chat action and verify it appears on the Home page",
+    "description": "Verifies a task created through a confirmed chat JSON action is saved locally and listed on the landing page.",
+    "category": "Data Management (local)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Buy milk tomorrow\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Create task\" is visible in the chat action area/message"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Confirm\" on the \"Create task\" action"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Home\" or \"Back to Home\" navigation control (to go to /)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Buy milk\" is visible in the tasks list"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Create a finance record via chat action and verify it appears on the Home page",
+    "description": "Verifies a finance record created through a confirmed chat JSON action is saved locally and reflected on the landing page.",
+    "category": "Data Management (local)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Log expense $12 for lunch\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"finance\" is visible in the chat action area/message"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Confirm\" on the finance-related action"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Home\" or \"Back to Home\" navigation control (to go to /)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"lunch\" is visible in the finance list/summary"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "LocalStorage sync edge case: task may require reload to appear on Home page",
+    "description": "Verifies that if a newly created task does not appear immediately on the Home page, reloading resolves the visibility due to the known sync edge case behavior.",
+    "category": "Data Management (local)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Walk dog\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Confirm\" on the \"Create task\" action"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Home\" or \"Back to Home\" navigation control (to go to /)"
+      },
+      {
+        "type": "action",
+        "description": "Reload the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Walk dog\" is visible in the tasks list"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Handle malformed JSON action: show validation error and allow resend corrected request",
+    "description": "Verifies that when the assistant returns a malformed JSON action, the UI displays a validation error and the user can resend a corrected request and successfully save data.",
+    "category": "Data Management (local)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Do X\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"validation\" is visible in the chat/action error message area"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"edit\" is visible (suggesting the user can edit the request or resend)"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Do X tomorrow\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Create task\" is visible in the chat action area/message"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "After malformed action recovery, confirm the valid action and verify task is saved on Home page",
+    "description": "Verifies the end-to-end recovery flow completes by confirming the corrected action and seeing the task listed on the landing page.",
+    "category": "Data Management (local)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Do X tomorrow\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Confirm\" on the \"Create task\" action"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Home\" or \"Back to Home\" navigation control (to go to /)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Do X\" is visible in the tasks list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"tomorrow\" is visible in the tasks list item details"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Cancel/decline a task action so it is not saved locally",
+    "description": "Verifies that declining a create-task action prevents the task from being persisted and shown on the Home page.",
+    "category": "Data Management (local)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /chat"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Create task: Buy oranges\" into the chat input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Send\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Create task\" is visible in the chat action area/message"
+      },
+      {
+        "type": "action",
+        "description": "Click \"Cancel\" or \"Decline\" on the \"Create task\" action"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Home\" or \"Back to Home\" navigation control (to go to /)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Buy oranges\" is not visible in the tasks list"
+      }
+    ]
+  }
+]
