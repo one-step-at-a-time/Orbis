@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Bot, Mic, Send, AlertCircle, Key } from 'lucide-react';
+import { User, Bot, Mic, Send, AlertCircle, Key, X } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -13,7 +13,7 @@ function readKey(name) {
 }
 
 export function ChatPage() {
-    const { sendMessage, loading, isSearching, error, hasKey, provider } = useClaudeChat();
+    const { sendMessage, loading, isSearching, error, clearError, hasKey, provider } = useClaudeChat();
 
     // Provider: ler direto do localStorage (sem hook compartilhado)
     const [storedProvider, setStoredProviderState] = useState(() => readKey('orbis_ai_provider') || 'gemini');
@@ -27,13 +27,20 @@ export function ChatPage() {
 
     // UI state
     const [messages, setMessages] = useLocalStorage('orbis_chat_history', [
-        { id: "w", tipo: "ia", mensagem: "Olá! Sou o Orbis, seu assistente pessoal. Como posso ajudar você hoje? ⚡\n\nVocê pode me pedir para:\n• Criar tarefas, hábitos, lembretes\n• Registrar despesas e receitas\n• Consultar sua agenda\n• E muito mais!", timestamp: new Date().toISOString() }
+        { id: "w", tipo: "ia", mensagem: "Olá! Sou The System, seu assistente pessoal. Como posso ajudar você hoje? ⚡\n\nVocê pode me pedir para:\n• Criar tarefas, hábitos, lembretes\n• Registrar despesas e receitas\n• Consultar sua agenda\n• E muito mais!", timestamp: new Date().toISOString() }
     ]);
     const [input, setInput] = useState("");
     const [tempKey, setTempKey] = useState("");
     const [showKeyInput, setShowKeyInput] = useState(!hasKey);
     const scrollRef = useRef(null);
 
+    // Auto-dismiss de erros após 6 segundos
+    useEffect(() => {
+        if (error) {
+            const t = setTimeout(() => clearError(), 6000);
+            return () => clearTimeout(t);
+        }
+    }, [error]);
 
     useEffect(() => {
         scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight);
@@ -98,8 +105,8 @@ export function ChatPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Chat com <span className="gradient-text">Orbis</span></h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Converse com seu assistente pessoal</p>
+                    <h1 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#06b6d4", textShadow: "0 0 16px rgba(6,182,212,0.4)" }}>[ CHAT ]</h1>
+                    <p style={{ color: "var(--text-muted)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em" }}>INTERFACE DE COMUNICAÇÃO</p>
                 </div>
                 <button className="btn-ghost" onClick={() => setShowKeyInput(!showKeyInput)}>
                     <Key size={18} color={hasKey ? "var(--primary)" : "var(--text-muted)"} />
@@ -107,7 +114,7 @@ export function ChatPage() {
             </div>
 
             {showKeyInput && (
-                <div className="card animate-slide-up" style={{ padding: 20, border: "1px solid var(--primary)", background: "rgba(59,130,246,0.05)" }}>
+                <div className="card animate-slide-up" style={{ padding: 20, border: "1px solid rgba(6,182,212,0.35)", background: "rgba(6,182,212,0.04)" }}>
                     <div style={{ display: "flex", gap: 16, borderBottom: "1px solid var(--border)", marginBottom: 16, paddingBottom: 8 }}>
                         <button
                             onClick={() => setConfigTab('ia')}
@@ -150,7 +157,7 @@ export function ChatPage() {
                         <>
                             <h4 style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Configuração de Busca na Web</h4>
                             <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-                                Insira sua chave da <strong>Brave Search API</strong> para permitir que o Orbis pesquise informações reais na internet.
+                                Insira sua chave da <strong>Brave Search API</strong> para permitir que The System pesquise informações reais na internet.
                             </p>
                         </>
                     )}
@@ -169,9 +176,12 @@ export function ChatPage() {
             )}
 
             {error && (
-                <div style={{ padding: 12, borderRadius: 10, background: "rgba(239,68,68,0.1)", color: "#ef4444", display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
-                    <AlertCircle size={16} />
-                    <span>{error}</span>
+                <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", color: "#ef4444", display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1 }}>{error}</span>
+                    <button onClick={clearError} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: 2, display: "flex" }}>
+                        <X size={14} />
+                    </button>
                 </div>
             )}
 
@@ -179,8 +189,8 @@ export function ChatPage() {
                 <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(17,24,39,0.4)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: hasKey ? "#22c55e" : "#f59e0b" }} className={hasKey ? "pulse-ring" : ""} />
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>
-                            Orbis {provider === 'gemini' ? 'Gemini 2.0' : (provider === 'zhipu' ? 'GLM-4' : 'DeepSeek V3')}
+                        <span style={{ fontWeight: 600, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: "#06b6d4" }}>
+                            THE SYSTEM {provider === 'gemini' ? '// Gemini 2.0' : (provider === 'zhipu' ? '// GLM-4' : '// DeepSeek V3')}
                         </span>
                         <span style={{ fontSize: 11, color: "var(--text-muted)" }}>• {hasKey ? "online" : "requer chave"}</span>
                         {readKey('orbis_brave_key') && (
@@ -218,7 +228,7 @@ export function ChatPage() {
                 <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
                     {messages.map(msg => (
                         <div key={msg.id} style={{ display: "flex", gap: 10, flexDirection: msg.tipo === "usuario" ? "row-reverse" : "row" }} className="animate-slide-up">
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(59,130,246,0.15)" : "linear-gradient(135deg, #3b82f6, #06b6d4)" }}>
+                            <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(6,182,212,0.15)" : "linear-gradient(135deg, #06b6d4, #0891b2)" }}>
                                 {msg.tipo === "usuario" ? <User size={14} color="var(--primary)" /> : <Bot size={14} color="white" />}
                             </div>
                             <div className={msg.tipo === "usuario" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ maxWidth: "75%", padding: "12px 16px" }}>
@@ -252,7 +262,7 @@ export function ChatPage() {
                             value={input}
                             onChange={e => setInput(e.target.value)}
                             onKeyDown={e => e.key === "Enter" && handleSend()}
-                            placeholder={hasKey ? "Converse com o Orbis..." : "Adicione uma chave API primeiro..."}
+                            placeholder={hasKey ? "Converse com The System..." : "Adicione uma chave API primeiro..."}
                             disabled={loading || !hasKey}
                             style={{ paddingRight: 44 }}
                         />

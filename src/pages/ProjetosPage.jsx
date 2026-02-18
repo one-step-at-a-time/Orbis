@@ -3,6 +3,7 @@ import { Plus, CheckCircle2, Clock } from 'lucide-react';
 import { Badge, ProgressBar } from '../components/Common';
 import { useAppData } from '../context/DataContext';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 import { NewProjectModal } from '../components/Modals';
 
 export function ProjetosPage() {
@@ -13,10 +14,7 @@ export function ProjetosPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Projetos</h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Gerencie seus projetos e acompanhe o progresso</p>
-                </div>
+                <PageHeader title="PROJETOS" subtitle="MISSÕES DE LONGA DURAÇÃO" />
                 <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}><Plus size={16} /> Novo Projeto</button>
             </div>
 

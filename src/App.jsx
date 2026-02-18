@@ -15,6 +15,7 @@ import { LoginPage } from './pages/LoginPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
 import { NotificationTray } from './components/NotificationTray';
+import { LevelUpModal } from './components/LevelUpModal';
 
 export default function App() {
   const { user, login, logout } = useAppAuth();
@@ -113,6 +114,7 @@ export default function App() {
         setPage={setPage}
       />
       <NotificationTray />
+      <LevelUpModal />
     </div>
   );
 }

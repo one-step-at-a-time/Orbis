@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { LayoutList, Columns, Plus, Circle, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 import { NewTaskModal } from '../components/Modals';
 import { formatDate } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
+import { usePlayer } from '../context/PlayerContext';
 
 function PriorityBadge({ priority }) {
     const map = {
@@ -29,6 +31,7 @@ function StatusBadge({ status }) {
 
 export function TarefasPage() {
     const { tasks, updateTask } = useAppData();
+    const { gainXP } = usePlayer();
     const [view, setView] = useState("list");
     const [filter, setFilter] = useState("todas");
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,7 +39,9 @@ export function TarefasPage() {
     const toggleTask = (id) => {
         const task = tasks.find(t => t.id === id);
         if (task) {
-            updateTask(id, { status: task.status === "concluida" ? "pendente" : "concluida" });
+            const completing = task.status !== "concluida";
+            updateTask(id, { status: completing ? "concluida" : "pendente" });
+            if (completing) gainXP(task.prioridade || 'media');
         }
     };
 
@@ -51,7 +56,7 @@ export function TarefasPage() {
     const StatusIcon = { pendente: Circle, fazendo: Clock, concluida: CheckCircle2, atrasada: AlertCircle };
 
     const TaskItem = ({ task }) => {
-        const SIcon = StatusIcon[task.status];
+        const SIcon = StatusIcon[task.status] || Circle;
         const done = task.status === "concluida";
 
         const handleDragStart = (e) => {
@@ -105,10 +110,7 @@ export function TarefasPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Tarefas</h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Organize e acompanhe suas tarefas</p>
-                </div>
+                <PageHeader title="TAREFAS" subtitle="ORGANIZE E ACOMPANHE SUAS MISSÕES" />
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <div style={{ display: "flex", background: "var(--bg-secondary)", borderRadius: 8, padding: 3 }}>
                         {[{ k: "list", icon: LayoutList }, { k: "kanban", icon: Columns }].map(v => (

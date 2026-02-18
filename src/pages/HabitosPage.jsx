@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Target, Flame, CheckCircle2, TrendingUp, Check, Plus } from 'lucide-react';
 import { StatsCard, ProgressBar } from '../components/Common';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 import { NewHabitModal } from '../components/Modals';
 import { useAppData } from '../context/DataContext';
 
@@ -22,10 +23,7 @@ export function HabitosPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Hábitos</h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Construa hábitos saudáveis e acompanhe seu progresso</p>
-                </div>
+                <PageHeader title="HÁBITOS" subtitle="CONSTRUINDO DISCIPLINA DIÁRIA" />
                 <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
                     <Plus size={16} /> Novo Hábito
                 </button>

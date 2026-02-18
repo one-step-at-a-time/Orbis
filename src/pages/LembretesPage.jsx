@@ -4,6 +4,7 @@ import { Badge } from '../components/Common';
 import { formatDateTime } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 import { NewReminderModal } from '../components/Modals';
 
 export function LembretesPage() {
@@ -13,10 +14,7 @@ export function LembretesPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Lembretes</h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Não esqueça dos seus compromissos importantes</p>
-                </div>
+                <PageHeader title="LEMBRETES" subtitle="ALERTAS DO SISTEMA" />
                 <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}><Plus size={16} /> Novo Lembrete</button>
             </div>
 

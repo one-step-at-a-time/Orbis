@@ -103,7 +103,7 @@ export function SearchOverlay({ isOpen, onClose, setPage }) {
 
                 <div style={{ padding: "12px 20px", background: "rgba(17,24,39,0.4)", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "var(--text-dim)" }}>
                     <span>Pressione <b>ESC</b> para fechar</span>
-                    <span>Orbis IntelliSearch™</span>
+                    <span>The System IntelliSearch™</span>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import {
     ArrowUpRight, ArrowDownRight, Sparkles, Folder, Target
 } from 'lucide-react';
 import { StatsCard, ProgressBar } from '../components/Common';
+import { PageHeader } from '../components/PageHeader';
 import { formatCurrency } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
 
@@ -28,10 +29,7 @@ export function DashboardPage() {
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            <div>
-                <h1 style={{ fontSize: 24, fontWeight: 700 }}>Visão <span className="gradient-text">Orbis</span></h1>
-                <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Panorama completo da sua vida em um só lugar</p>
-            </div>
+            <PageHeader title="STATUS DO SISTEMA" subtitle="PANORAMA COMPLETO DO SEU PROGRESSO" />
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
                 <StatsCard title="Concluídos Hoje" value={habitsToday} subtitle={`de ${habits.length} hábitos`} icon={CheckCircle2} iconColor="#22c55e" bgColor="rgba(34,197,94,0.1)" />

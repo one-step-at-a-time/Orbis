@@ -5,7 +5,7 @@ export function Header({ user, onLogout, onMenuToggle, onSearchToggle }) {
     const { theme, toggleTheme } = useTheme();
 
     return (
-        <header className="blur-header" style={{ height: 72, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 40, background: "rgba(10, 11, 14, 0.8)", backdropFilter: "blur(12px)" }}>
+        <header className="blur-header" style={{ height: 72, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(6,182,212,0.15)", position: "sticky", top: 0, zIndex: 40, background: "rgba(5,8,16,0.88)", backdropFilter: "blur(12px)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button onClick={onMenuToggle} className="btn-ghost sidebar-toggle" style={{ display: "none" }}>
                     <Menu size={20} />
@@ -13,7 +13,7 @@ export function Header({ user, onLogout, onMenuToggle, onSearchToggle }) {
                 <button onClick={onSearchToggle} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: 12, background: "rgba(17,24,39,0.4)" }}>
                     <Search size={18} color="var(--text-dim)" />
                     <span style={{ fontSize: 13, color: "var(--text-dim)", display: "none" }} className="header-search-text">Buscar...</span>
-                    <kbd style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(255,255,255,0.05)", color: "var(--text-dim)", border: "1px solid var(--border)" }}>⌘K</kbd>
+                    <kbd style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(6,182,212,0.06)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>⌘K</kbd>
                 </button>
             </div>
 

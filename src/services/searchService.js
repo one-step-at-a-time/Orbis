@@ -1,15 +1,19 @@
 export async function searchInternet(query, apiKey) {
     if (!apiKey) throw new Error("Brave Search API Key não configurada.");
 
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`;
+    const isProd = import.meta.env.PROD;
+    const url = isProd
+        ? `/api/brave-search?q=${encodeURIComponent(query)}&count=5`
+        : `/brave-search/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`;
+
+    const headers = isProd
+        ? { "Accept": "application/json", "x-brave-key": apiKey }
+        : { "Accept": "application/json", "X-Subscription-Token": apiKey };
 
     try {
         const response = await fetch(url, {
             method: "GET",
-            headers: {
-                "Accept": "application/json",
-                "X-Subscription-Token": apiKey
-            }
+            headers
         });
 
         if (!response.ok) {

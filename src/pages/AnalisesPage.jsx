@@ -4,6 +4,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell
 } from "recharts";
 import { StatsCard } from '../components/Common';
+import { PageHeader } from '../components/PageHeader';
 import { useAppData } from '../context/DataContext';
 
 export function AnalisesPage() {
@@ -47,10 +48,7 @@ export function AnalisesPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Análises <span className="gradient-text">Orbis</span></h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Relatórios detalhados de produtividade e evolução</p>
-                </div>
+                <PageHeader title="ANÁLISES" subtitle="RELATÓRIO DE DESEMPENHO" />
                 <button className="btn btn-primary" onClick={handleExport}><BarChart3 size={16} /> Exportar Relatório</button>
             </div>
 
@@ -152,7 +150,7 @@ export function AnalisesPage() {
                     <div style={{ padding: 10, borderRadius: 12, background: "rgba(59, 130, 246, 0.1)" }}>
                         <TrendingUp size={20} color="var(--primary)" />
                     </div>
-                    <h3 style={{ fontWeight: 700, fontSize: 18 }}>Análise de Desempenho Orbis</h3>
+                    <h3 style={{ fontWeight: 700, fontSize: 18 }}>Análise de Desempenho</h3>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 32 }}>
                     <div>

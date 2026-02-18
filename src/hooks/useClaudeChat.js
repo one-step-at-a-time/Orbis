@@ -3,6 +3,24 @@ import { callAiProvider } from '../services/aiProviderService';
 import { searchInternet } from '../services/searchService';
 import { useAppData } from '../context/DataContext';
 
+// Traduz erros técnicos para mensagens amigáveis
+function friendlyError(err) {
+    const msg = err?.message || String(err);
+    if (msg.includes("API key") || msg.includes("api_key") || msg.includes("401") || msg.includes("API_KEY_INVALID"))
+        return "Chave de API inválida ou expirada. Verifique nas configurações.";
+    if (msg.includes("quota") || msg.includes("429") || msg.includes("rate limit") || msg.includes("RESOURCE_EXHAUSTED"))
+        return "Limite de uso da API atingido. Aguarde alguns minutos e tente novamente.";
+    if (msg.includes("network") || msg.includes("fetch") || msg.includes("Failed to fetch"))
+        return "Sem conexão com a internet. Verifique sua rede e tente novamente.";
+    if (msg.includes("Brave"))
+        return "Erro na busca web. Verifique sua chave da Brave Search nas configurações.";
+    if (msg.includes("500") || msg.includes("503"))
+        return "O serviço de IA está temporariamente indisponível. Tente novamente em instantes.";
+    if (msg.includes("timeout"))
+        return "A requisição demorou demais. Tente novamente.";
+    return "Algo deu errado. Tente novamente ou verifique suas configurações.";
+}
+
 // Helper: read from localStorage directly (no hooks, no race conditions)
 function getKey(name) {
     try {
@@ -55,10 +73,23 @@ export function useClaudeChat() {
         const userQuery = lastMsg.tipo === 'usuario' ? lastMsg.mensagem.toLowerCase() : "";
 
         const triggerWords = [
-            "preço", "valor", "cotação", "quanto custa", "quanto tá",
-            "clima", "tempo em", "previsão", "chover", "calor",
-            "quem ganhou", "quem é", "o que aconteceu", "notícias",
-            "resumo de hoje", "hoje", "agora", "últimas"
+            // Preços e finanças
+            "preço", "valor", "cotação", "quanto custa", "quanto tá", "quanto está",
+            "dólar", "euro", "bitcoin", "btc", "ethereum", "eth", "crypto", "cripto",
+            "ação", "ações", "bolsa", "ibovespa", "nasdaq", "s&p", "mercado",
+            // Clima
+            "clima", "tempo em", "previsão", "chover", "calor", "frio", "temperatura",
+            // Notícias e eventos
+            "quem ganhou", "quem é", "o que aconteceu", "notícias", "noticia",
+            "resumo de hoje", "hoje", "agora", "últimas", "último", "ultima",
+            "acontecimento", "novidade", "lançamento", "evento",
+            // Pesquisa geral
+            "pesquisa", "pesquisar", "busca", "buscar", "procura", "procurar",
+            "me fala sobre", "me conta sobre", "o que é", "quem foi", "quando foi",
+            "onde fica", "como funciona", "qual é",
+            // Inglês
+            "price", "how much", "weather", "news", "who is", "what is",
+            "when is", "where is", "latest", "current", "today", "now"
         ];
 
         const needsSearch = triggerWords.some(w => userQuery.includes(w)) && freshBraveKey;
@@ -153,25 +184,28 @@ export function useClaudeChat() {
                 } catch (e) {
                     setIsSearching(false);
                     console.error("[Orbis] Erro na ação:", e);
-                    if (e.message.includes("Brave")) setError(e.message);
+                    setError(friendlyError(e));
                 }
             }
 
             setLoading(false);
 
-            // Limpeza final RADICAL: remover blocos markdown, JSON e chaves residuais
+            // Limpeza final: remover blocos markdown, JSON, asteriscos e formatação residual
             const cleanFinal = responseText
                 .replace(/```json[\s\S]*?```/g, "")
                 .replace(/```[\s\S]*?```/g, "")
                 .replace(/\{[\s\S]*?\}/g, "")
-                .replace(/json$/gm, "") // Remove "json" solto no fim da linha
+                .replace(/json$/gm, "")
+                .replace(/^\s*\*\s+/gm, "- ")       // Converte bullet points (* Item) para hífen (- Item)
+                .replace(/\*/g, "")                  // Remove TODOS os outros asteriscos (negrito/itálico)
+                .replace(/#{1,6}\s+/g, "")           // Remove headers markdown
                 .trim();
 
             return cleanFinal;
         } catch (err) {
             setIsSearching(false);
             console.error("[Orbis] Erro fatal no fluxo:", err);
-            setError(err.message);
+            setError(friendlyError(err));
             setLoading(false);
             return null;
         }
@@ -188,5 +222,5 @@ export function useClaudeChat() {
         }
     };
 
-    return { sendMessage, loading, isSearching, error, hasKey: !!apiKey, provider };
+    return { sendMessage, loading, isSearching, error, clearError: () => setError(null), hasKey: !!apiKey, provider };
 }

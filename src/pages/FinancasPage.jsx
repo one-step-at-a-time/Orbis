@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { StatsCard } from '../components/Common';
 import { Modal } from '../components/Modal';
+import { PageHeader } from '../components/PageHeader';
 import { NewFinanceModal } from '../components/Modals';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
@@ -17,10 +18,7 @@ export function FinancasPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700 }}>Finanças</h1>
-                    <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Controle suas receitas e despesas</p>
-                </div>
+                <PageHeader title="FINANÇAS" subtitle="GESTÃO DE RECURSOS" />
                 <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
                     <Plus size={16} /> Novo Lançamento
                 </button>
