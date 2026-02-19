@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
     MOCK_TASKS, MOCK_HABITS, MOCK_PROJECTS, MOCK_REMINDERS, MOCK_FINANCES
@@ -8,6 +8,17 @@ const DataContext = createContext(null);
 
 export function DataProvider({ children }) {
     const [tasks, setTasks] = useLocalStorage('orbis_tasks', MOCK_TASKS);
+
+    // Auto-mark overdue tasks on mount and whenever tasks change
+    useEffect(() => {
+        const today = new Date().toISOString().split('T')[0];
+        setTasks(prev => prev.map(t => {
+            if (t.dataPrazo && t.dataPrazo < today && t.status !== 'concluida' && t.status !== 'atrasada') {
+                return { ...t, status: 'atrasada' };
+            }
+            return t;
+        }));
+    }, []);
     const [habits, setHabits] = useLocalStorage('orbis_habits', MOCK_HABITS);
     const [projects, setProjects] = useLocalStorage('orbis_projects', MOCK_PROJECTS);
     const [reminders, setReminders] = useLocalStorage('orbis_reminders', MOCK_REMINDERS);

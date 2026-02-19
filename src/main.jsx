@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PlayerProvider } from './context/PlayerContext';
+import { MissionProvider } from './context/MissionContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <DataProvider>
           <PlayerProvider>
-            <App />
+            <MissionProvider>
+              <App />
+            </MissionProvider>
           </PlayerProvider>
         </DataProvider>
       </ThemeProvider>

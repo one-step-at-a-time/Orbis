@@ -11,6 +11,7 @@ import { ProjetosPage } from './pages/ProjetosPage';
 import { LembretesPage } from './pages/LembretesPage';
 import { FinancasPage } from './pages/FinancasPage';
 import { AnalisesPage } from './pages/AnalisesPage';
+import { MissoesPage } from './pages/MissoesPage';
 import { LoginPage } from './pages/LoginPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -47,6 +48,7 @@ export default function App() {
   const pages = {
     dashboard: DashboardPage,
     chat: ChatPage,
+    missoes: MissoesPage,
     tarefas: TarefasPage,
     habitos: HabitosPage,
     projetos: ProjetosPage,

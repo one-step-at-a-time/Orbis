@@ -12,5 +12,16 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/brave-search/, '')
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'charts': ['recharts'],
+          'icons': ['lucide-react'],
+        }
+      }
+    }
   }
 })

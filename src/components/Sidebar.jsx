@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Zap } from 'lucide-react';
+import React, { useRef } from 'react';
+import { X, Zap, Download, Upload } from 'lucide-react';
 import { cn } from '../utils/formatters';
 import { usePlayer } from '../context/PlayerContext';
 import { getRank } from '../utils/playerUtils';
@@ -97,6 +97,18 @@ function PlayerCard() {
                 </p>
             )}
 
+            {/* Stats */}
+            {player.stats && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4, marginBottom: 8 }}>
+                    {Object.entries(player.stats).map(([key, val]) => (
+                        <div key={key} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 8, color: '#334155', fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>{key}</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: color, fontFamily: "'JetBrains Mono', monospace" }}>{val}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* XP Bar */}
             <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                 <div style={{
@@ -110,6 +122,66 @@ function PlayerCard() {
             <p style={{ fontSize: 9, color: '#334155', marginTop: 4, fontFamily: "'JetBrains Mono', monospace", textAlign: 'right' }}>
                 {player.xp} / {xpNeeded} XP
             </p>
+        </div>
+    );
+}
+
+const DATA_KEYS = ['orbis_tasks', 'orbis_habits', 'orbis_projects', 'orbis_reminders', 'orbis_finances', 'orbis_player'];
+
+function DataBackup() {
+    const importRef = useRef(null);
+
+    const handleExport = () => {
+        const backup = {};
+        DATA_KEYS.forEach(k => {
+            const val = localStorage.getItem(k);
+            if (val) backup[k] = JSON.parse(val);
+        });
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `the-system-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                DATA_KEYS.forEach(k => {
+                    if (data[k] !== undefined) localStorage.setItem(k, JSON.stringify(data[k]));
+                });
+                window.location.reload();
+            } catch {
+                alert('Arquivo inválido.');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
+    return (
+        <div style={{ padding: "8px 12px", display: "flex", gap: 6 }}>
+            <button
+                onClick={handleExport}
+                title="Exportar backup"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 0", borderRadius: 8, background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.15)", color: "#06b6d4", cursor: "pointer", fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}
+            >
+                <Download size={13} /> EXPORT
+            </button>
+            <button
+                onClick={() => importRef.current?.click()}
+                title="Importar backup"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "7px 0", borderRadius: 8, background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.15)", color: "#06b6d4", cursor: "pointer", fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}
+            >
+                <Upload size={13} /> IMPORT
+            </button>
+            <input ref={importRef} type="file" accept=".json" onChange={handleImport} style={{ display: "none" }} />
         </div>
     );
 }
@@ -132,7 +204,8 @@ export function Sidebar({ page, setPage, onClose }) {
             <SidebarNav page={page} setPage={setPage} onClose={onClose} />
 
             <PlayerCard />
-            <div style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)" }}>
+            <DataBackup />
+            <div style={{ padding: "10px 20px", borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-dim)" }}>
                 THE SYSTEM v1.0 • ONLINE
             </div>
         </div>

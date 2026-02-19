@@ -16,7 +16,8 @@ export function DashboardPage() {
     const overdue = tasks.filter(t => t.status === "atrasada").length;
     const taskRate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
 
-    const habitsToday = habits.filter(h => h.logs.some(l => l.data === "2026-02-17")).length;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const habitsToday = habits.filter(h => h.logs.some(l => l.data === todayStr)).length;
     const habitRate = habits.length > 0 ? Math.round((habits.reduce((a, h) => a + h.logs.length, 0) / habits.reduce((a, h) => a + h.metaMensal, 0)) * 100) : 0;
 
     const projAtivos = projects.filter(p => p.status === "ativo").length;

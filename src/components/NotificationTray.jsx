@@ -8,13 +8,19 @@ export function NotificationTray() {
     const [notifications, setNotifications] = useState([]);
     const [notifiedIds, setNotifiedIds] = useState(new Set());
 
+    // Request browser notification permission on mount
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
     useEffect(() => {
         const checkReminders = () => {
             const now = new Date();
             const upcoming = reminders.filter(r => {
                 const rDate = new Date(r.dataHora);
                 const diff = rDate - now;
-                // Notificar se faltar menos de 5 minutos ou se já passou mas foi recente (últimos 2 mins)
                 return !notifiedIds.has(r.id) && diff < 300000 && diff > -120000;
             });
 
@@ -27,13 +33,22 @@ export function NotificationTray() {
                 setNotifications(prev => [...prev, ...newToasts]);
                 setNotifiedIds(prev => {
                     const next = new Set(prev);
-                    upcoming.forEach(r => next.add(r.id));
+                    upcoming.forEach(r => {
+                        next.add(r.id);
+                        // Fire native OS notification
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('The System — Lembrete', {
+                                body: r.titulo,
+                                icon: '/vite.svg',
+                            });
+                        }
+                    });
                     return next;
                 });
             }
         };
 
-        const interval = setInterval(checkReminders, 10000); // Checar a cada 10s
+        const interval = setInterval(checkReminders, 10000);
         checkReminders();
         return () => clearInterval(interval);
     }, [reminders, notifiedIds]);

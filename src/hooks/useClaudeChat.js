@@ -128,7 +128,9 @@ export function useClaudeChat() {
                 };
             }
 
-            let responseText = await callAiProvider(freshProvider, finalMessages, freshApiKey, freshModel ? { model: freshModel } : {});
+            // Trim to last 30 messages to avoid overloading context window
+            const trimmedMessages = finalMessages.slice(-30);
+            let responseText = await callAiProvider(freshProvider, trimmedMessages, freshApiKey, freshModel ? { model: freshModel } : {});
 
             // Detectar ação JSON (buscando o par de chaves mais externo { ... })
             let actionData = null;
@@ -177,7 +179,7 @@ export function useClaudeChat() {
                             { tipo: "usuario", mensagem: searchContext }
                         ];
 
-                        responseText = await callAiProvider(freshProvider, augmentedMessages, freshApiKey, freshModel ? { model: freshModel } : {});
+                        responseText = await callAiProvider(freshProvider, augmentedMessages.slice(-30), freshApiKey, freshModel ? { model: freshModel } : {});
                         setIsSearching(false);
                     } else {
                         executeAction(actionData);
