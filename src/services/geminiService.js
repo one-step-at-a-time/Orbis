@@ -12,7 +12,7 @@ export async function sendToGemini(messages, apiKey) {
 
     const currentMessage = messages[messages.length - 1].mensagem;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
         method: "POST",
@@ -55,7 +55,7 @@ Data atual: ${new Date().toISOString().split('T')[0]}`
                 temperature: 0.7,
                 topK: 40,
                 topP: 0.95,
-                maxOutputTokens: 1024,
+                maxOutputTokens: 4096,
             }
         })
     });

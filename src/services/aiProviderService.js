@@ -7,7 +7,7 @@ export async function callAiProvider(provider, messages, apiKey, options = {}) {
 }
 
 async function callGemini(messages, apiKey, options) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${options.model || 'gemini-2.0-flash'}:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${options.model || 'gemini-2.5-flash'}:generateContent?key=${apiKey}`;
 
     // Convert history for Gemini
     const history = messages.slice(0, -1).map(msg => ({
@@ -26,7 +26,7 @@ async function callGemini(messages, apiKey, options) {
                 temperature: 0.7,
                 topK: 40,
                 topP: 0.95,
-                maxOutputTokens: 1024,
+                maxOutputTokens: 4096,
             }
         })
     });
@@ -45,7 +45,7 @@ async function callOpenAiCompatible(provider, messages, apiKey, options) {
 
     if (provider === 'zhipu') {
         baseUrl = "https://open.bigmodel.cn/api/paas/v4";
-        model = options.model || "glm-4-flash";
+        model = options.model || "glm-4-plus";
     } else if (provider === 'siliconflow') {
         baseUrl = "https://api.siliconflow.com/v1";
         model = options.model || "deepseek-ai/DeepSeek-V3";
@@ -72,7 +72,8 @@ async function callOpenAiCompatible(provider, messages, apiKey, options) {
         body: JSON.stringify({
             model: model,
             messages: formattedMessages,
-            temperature: 0.7
+            temperature: 0.7,
+            max_tokens: 4096,
         })
     });
 
