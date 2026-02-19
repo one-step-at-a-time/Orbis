@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { getRank } from '../utils/playerUtils';
 
 const PlayerContext = createContext(null);
 
@@ -24,15 +25,6 @@ const XP_TABLE = {
     alta: 200,
 };
 
-export function getRank(level) {
-    if (level >= 71) return { rank: 'Nacional', color: '#06b6d4', glow: 'rgba(6,182,212,0.5)' };
-    if (level >= 51) return { rank: 'S',        color: '#ef4444', glow: 'rgba(239,68,68,0.5)' };
-    if (level >= 36) return { rank: 'A',        color: '#f59e0b', glow: 'rgba(245,158,11,0.5)' };
-    if (level >= 21) return { rank: 'B',        color: '#a855f7', glow: 'rgba(168,85,247,0.5)' };
-    if (level >= 11) return { rank: 'C',        color: '#3b82f6', glow: 'rgba(59,130,246,0.5)' };
-    if (level >= 6)  return { rank: 'D',        color: '#22c55e', glow: 'rgba(34,197,94,0.5)' };
-    return              { rank: 'E',        color: '#9ca3af', glow: 'rgba(156,163,175,0.5)' };
-}
 
 function xpForNextLevel(level) {
     return level * 150;
@@ -52,6 +44,7 @@ const INITIAL_PLAYER = {
     totalXp: 0,
     titles: ["O Desperto"],
     activeTitle: "O Desperto",
+    stats: { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 },
 };
 
 export function PlayerProvider({ children }) {
@@ -62,7 +55,7 @@ export function PlayerProvider({ children }) {
         const amount = XP_TABLE[priority] || XP_TABLE.media;
 
         setPlayer(prev => {
-            let { level, xp, totalXp, titles, activeTitle } = prev;
+            let { level, xp, totalXp, titles, activeTitle, stats } = prev;
             xp += amount;
             totalXp += amount;
 
@@ -91,7 +84,68 @@ export function PlayerProvider({ children }) {
                 }, 300);
             }
 
-            return { level, xp, totalXp, titles: allTitles, activeTitle: updatedActiveTitle };
+            return { level, xp, totalXp, titles: allTitles, activeTitle: updatedActiveTitle, stats: stats || { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 } };
+        });
+    }, [setPlayer]);
+
+    const gainXPAmount = useCallback((amount) => {
+        setPlayer(prev => {
+            let { level, xp, totalXp, titles, activeTitle, stats } = prev;
+            xp += amount;
+            totalXp += amount;
+
+            let newTitles = [];
+            let levelsGained = 0;
+
+            while (xp >= xpForNextLevel(level)) {
+                xp -= xpForNextLevel(level);
+                const gained = getNewTitles(level, level + 1);
+                newTitles = [...newTitles, ...gained];
+                level += 1;
+                levelsGained += 1;
+            }
+
+            const allTitles = getTitlesEarned(level);
+            const updatedActiveTitle = newTitles.length > 0 ? newTitles[newTitles.length - 1] : activeTitle;
+
+            if (levelsGained > 0) {
+                setTimeout(() => {
+                    setLevelUpData({
+                        newLevel: level,
+                        newRank: getRank(level),
+                        newTitles,
+                        xpGained: amount,
+                    });
+                }, 300);
+            }
+
+            return { level, xp, totalXp, titles: allTitles, activeTitle: updatedActiveTitle, stats: stats || { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 } };
+        });
+    }, [setPlayer]);
+
+    const applyPenalty = useCallback((xpLoss, statKey, statLoss) => {
+        setPlayer(prev => {
+            const currentStats = { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0, ...prev.stats };
+            const newStats = { ...currentStats };
+            if (statKey && statLoss) {
+                newStats[statKey] = Math.max(0, (newStats[statKey] || 0) - statLoss);
+            }
+            return {
+                ...prev,
+                xp: Math.max(0, prev.xp - xpLoss),
+                totalXp: Math.max(0, prev.totalXp - xpLoss),
+                stats: newStats,
+            };
+        });
+    }, [setPlayer]);
+
+    const applyStatBonus = useCallback((statChanges) => {
+        setPlayer(prev => {
+            const newStats = { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0, ...prev.stats };
+            Object.entries(statChanges).forEach(([key, val]) => {
+                newStats[key] = Math.max(0, (newStats[key] || 0) + val);
+            });
+            return { ...prev, stats: newStats };
         });
     }, [setPlayer]);
 
@@ -102,7 +156,7 @@ export function PlayerProvider({ children }) {
     }, [setPlayer]);
 
     return (
-        <PlayerContext.Provider value={{ player, gainXP, levelUpData, dismissLevelUp, setActiveTitle, xpForNextLevel, getRank }}>
+        <PlayerContext.Provider value={{ player, gainXP, gainXPAmount, applyPenalty, applyStatBonus, levelUpData, dismissLevelUp, setActiveTitle, xpForNextLevel, getRank }}>
             {children}
         </PlayerContext.Provider>
     );

@@ -1,7 +1,8 @@
 import React from 'react';
 import { X, Zap } from 'lucide-react';
 import { cn } from '../utils/formatters';
-import { usePlayer, getRank } from '../context/PlayerContext';
+import { usePlayer } from '../context/PlayerContext';
+import { getRank } from '../utils/playerUtils';
 import { useMissions } from '../context/MissionContext';
 
 const NAV_ITEMS = [
