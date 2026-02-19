@@ -20,10 +20,38 @@ export function ChatPage() {
     const setStoredProvider = (val) => {
         setStoredProviderState(val);
         window.localStorage.setItem('orbis_ai_provider', JSON.stringify(val));
+        // Reset model when provider changes
+        setStoredModelState('');
+        window.localStorage.removeItem('orbis_ai_model');
+    };
+
+    // Model: ler direto do localStorage
+    const [storedModel, setStoredModelState] = useState(() => readKey('orbis_ai_model') || '');
+    const setStoredModel = (val) => {
+        setStoredModelState(val);
+        window.localStorage.setItem('orbis_ai_model', JSON.stringify(val));
     };
 
     // Config mode state
     const [configTab, setConfigTab] = useState('ia'); // 'ia' or 'search'
+
+    const MODEL_OPTIONS = {
+        gemini: [
+            { value: 'gemini-2.5-flash',     label: 'Gemini 2.5 Flash — Recomendado' },
+            { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro — Mais potente' },
+            { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash — Anterior' },
+        ],
+        zhipu: [
+            { value: 'glm-4-plus',            label: 'GLM-4 Plus — Recomendado' },
+            { value: 'glm-4-flash',           label: 'GLM-4 Flash — Grátis / Rápido' },
+            { value: 'glm-4-long',            label: 'GLM-4 Long — Contexto longo' },
+        ],
+        siliconflow: [
+            { value: 'deepseek-ai/DeepSeek-V3',              label: 'DeepSeek V3 — Recomendado' },
+            { value: 'deepseek-ai/DeepSeek-R1',              label: 'DeepSeek R1 — Raciocínio' },
+            { value: 'Qwen/Qwen2.5-72B-Instruct',            label: 'Qwen 2.5 72B' },
+        ],
+    };
 
     // UI state
     const [messages, setMessages] = useLocalStorage('orbis_chat_history', [
@@ -133,16 +161,28 @@ export function ChatPage() {
                     {configTab === 'ia' ? (
                         <>
                             <h4 style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Configuração da Inteligência</h4>
-                            <div style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 12 }}>
                                 <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Provedor de IA</label>
                                 <select
                                     value={storedProvider}
                                     onChange={(e) => setStoredProvider(e.target.value)}
                                     style={{ width: "100%", background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px", color: "var(--text)", outline: "none" }}
                                 >
-                                    <option value="gemini">Google Gemini 2.0 (Flash)</option>
-                                    <option value="zhipu">Zhipu AI / GLM-4 (Z.ai)</option>
-                                    <option value="siliconflow">SiliconFlow (DeepSeek V3)</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="zhipu">Zhipu AI / GLM (Z.ai)</option>
+                                    <option value="siliconflow">SiliconFlow</option>
+                                </select>
+                            </div>
+                            <div style={{ marginBottom: 16 }}>
+                                <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Modelo</label>
+                                <select
+                                    value={storedModel}
+                                    onChange={(e) => setStoredModel(e.target.value)}
+                                    style={{ width: "100%", background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 10, padding: "8px 12px", color: "var(--text)", outline: "none" }}
+                                >
+                                    {MODEL_OPTIONS[storedProvider]?.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
                                 </select>
                             </div>
                             <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>

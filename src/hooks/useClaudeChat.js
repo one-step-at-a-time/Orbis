@@ -56,6 +56,7 @@ export function useClaudeChat() {
                 ? getKey('orbis_zhipu_key')
                 : getKey('orbis_siliconflow_key');
         const freshBraveKey = getKey('orbis_brave_key');
+        const freshModel = getKey('orbis_ai_model') || '';
 
         if (!freshApiKey) {
             setError(`Chave API para ${freshProvider} não configurada.`);
@@ -127,7 +128,7 @@ export function useClaudeChat() {
                 };
             }
 
-            let responseText = await callAiProvider(freshProvider, finalMessages, freshApiKey);
+            let responseText = await callAiProvider(freshProvider, finalMessages, freshApiKey, freshModel ? { model: freshModel } : {});
 
             // Detectar ação JSON (buscando o par de chaves mais externo { ... })
             let actionData = null;
@@ -176,7 +177,7 @@ export function useClaudeChat() {
                             { tipo: "usuario", mensagem: searchContext }
                         ];
 
-                        responseText = await callAiProvider(freshProvider, augmentedMessages, freshApiKey);
+                        responseText = await callAiProvider(freshProvider, augmentedMessages, freshApiKey, freshModel ? { model: freshModel } : {});
                         setIsSearching(false);
                     } else {
                         executeAction(actionData);
