@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Bell, Plus, Calendar, Trash2 } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { formatDateTime } from '../utils/formatters';
@@ -10,6 +11,7 @@ import { NewReminderModal } from '../components/Modals';
 export function LembretesPage() {
     const { reminders, deleteReminder } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [gridParent] = useAutoAnimate();
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -19,7 +21,7 @@ export function LembretesPage() {
             </div>
 
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+            <div ref={gridParent} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
                 {reminders.map(r => {
                     const impMap = { alta: { color: "#ef4444", bg: "rgba(239,68,68,0.1)", border: "rgba(239,68,68,0.2)" }, media: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.2)" }, baixa: { color: "#3b82f6", bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.2)" } };
                     const imp = impMap[r.importancia] || impMap.media;

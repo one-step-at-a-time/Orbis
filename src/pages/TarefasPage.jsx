@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { LayoutList, Columns, Plus, Circle, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { Modal } from '../components/Modal';
@@ -35,6 +36,7 @@ export function TarefasPage() {
     const [view, setView] = useState("list");
     const [filter, setFilter] = useState("todas");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [listParent] = useAutoAnimate();
 
     const toggleTask = (id) => {
         const task = tasks.find(t => t.id === id);
@@ -134,7 +136,7 @@ export function TarefasPage() {
                             </button>
                         ))}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div ref={listParent} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {filtered.length === 0 ? (
                             <p style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>Nenhuma tarefa encontrada</p>
                         ) : filtered.map(t => <TaskItem key={t.id} task={t} />)}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Plus, Minus, AlertTriangle, Zap, Shield, Brain, Wind, Eye } from 'lucide-react';
 import { useMissions } from '../context/MissionContext';
@@ -18,6 +19,7 @@ export function MissoesPage() {
     const { player } = usePlayer();
     const [xpFlashes, setXpFlashes] = useState({});
     const [penaltyFlashes, setPenaltyFlashes] = useState({});
+    const [missionsParent] = useAutoAnimate();
 
     const stats = { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0, ...player.stats };
 
@@ -147,7 +149,7 @@ export function MissoesPage() {
 
             {/* ── Daily Missions ── */}
             <SystemWindow title="Missões do Dia" style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div ref={missionsParent} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {missions.map(mission => {
                         const isCompleted = mission.type === 'counter'
                             ? (missionState.progress[mission.id] || 0) >= mission.max

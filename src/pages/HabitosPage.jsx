@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Target, Flame, CheckCircle2, TrendingUp, Check, Plus, Trash2 } from 'lucide-react';
 import { StatsCard, ProgressBar } from '../components/Common';
 import { Modal } from '../components/Modal';
@@ -9,6 +10,7 @@ import { useAppData } from '../context/DataContext';
 export function HabitosPage() {
     const { habits, addHabitLog, deleteHabit } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [habitsParent] = useAutoAnimate();
     const todayStr = new Date().toISOString().split('T')[0];
 
     const completedToday = habits.filter(h => h.logs.some(l => l.data === todayStr)).length;
@@ -78,7 +80,7 @@ export function HabitosPage() {
 
                 <div className="card" style={{ padding: 20 }}>
                     <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Meus Hábitos</h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div ref={habitsParent} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {habits.map(h => {
                             const done = h.logs.some(l => l.data === todayStr);
                             const progress = h.metaMensal > 0 ? Math.min((h.logs.length / h.metaMensal) * 100, 100) : 0;

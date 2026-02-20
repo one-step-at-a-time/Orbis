@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react';
 import { StatsCard } from '../components/Common';
 import { Modal } from '../components/Modal';
@@ -10,6 +11,7 @@ import { useAppData } from '../context/DataContext';
 export function FinancasPage() {
     const { finances, deleteFinance } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [financesParent] = useAutoAnimate();
 
     const receitas = finances.filter(f => f.tipo === "receita").reduce((a, f) => a + f.valor, 0);
     const despesas = finances.filter(f => f.tipo === "despesa").reduce((a, f) => a + f.valor, 0);
@@ -32,7 +34,7 @@ export function FinancasPage() {
 
             <div className="card" style={{ padding: 20 }}>
                 <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Lançamentos Recentes</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div ref={financesParent} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {finances.map(f => (
                         <div key={f.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 10, background: "rgba(17,24,39,0.5)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
