@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadSlim } from '@tsparticles/slim';
 import { Check, Plus, Minus, AlertTriangle, Zap, Shield, Brain, Wind, Eye } from 'lucide-react';
 import { useMissions } from '../context/MissionContext';
 import { usePlayer } from '../context/PlayerContext';
@@ -14,12 +16,34 @@ const STAT_CONFIG = {
     SEN: { icon: Eye,    color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.25)', label: 'SEN', name: 'Sensibilidade' },
 };
 
+const PARTICLES_OPTIONS = {
+    background: { color: { value: 'transparent' } },
+    fpsLimit: 60,
+    particles: {
+        color: { value: '#06b6d4' },
+        links: { color: '#06b6d4', distance: 160, enable: true, opacity: 0.08, width: 1 },
+        move: { enable: true, speed: 0.4, direction: 'none', random: true, outModes: { default: 'bounce' } },
+        number: { value: 35, density: { enable: true, area: 900 } },
+        opacity: { value: 0.12 },
+        shape: { type: 'circle' },
+        size: { value: { min: 1, max: 2 } },
+    },
+    detectRetina: true,
+};
+
 export function MissoesPage() {
     const { missions, badHabits, missionState, toggleMission, updateWaterCount, reportBadHabit, completedCount } = useMissions();
     const { player } = usePlayer();
     const [xpFlashes, setXpFlashes] = useState({});
     const [penaltyFlashes, setPenaltyFlashes] = useState({});
     const [missionsParent] = useAutoAnimate();
+    const [particlesReady, setParticlesReady] = useState(false);
+
+    useEffect(() => {
+        initParticlesEngine(async (engine) => {
+            await loadSlim(engine);
+        }).then(() => setParticlesReady(true));
+    }, []);
 
     const stats = { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0, ...player.stats };
 
@@ -53,9 +77,15 @@ export function MissoesPage() {
     };
 
     return (
-        <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto', position: 'relative' }}>
+            {particlesReady && (
+                <Particles
+                    options={PARTICLES_OPTIONS}
+                    style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+                />
+            )}
             {/* ── Header ── */}
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 24, position: 'relative', zIndex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <h1 style={{
                         fontFamily: "'JetBrains Mono', monospace",

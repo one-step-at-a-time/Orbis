@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@formkit/auto-animate": "^0.9.0",
+    "@tsparticles/react": "^3.0.0",
+    "@tsparticles/slim": "^3.9.1",
     "animejs": "^4.3.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.1",
