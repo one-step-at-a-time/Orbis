@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import anime from 'animejs';
+import { animate } from 'animejs';
 import { X, Zap, Download, Upload } from 'lucide-react';
 import { cn } from '../utils/formatters';
 import { usePlayer } from '../context/PlayerContext';
@@ -73,8 +73,7 @@ function PlayerCard() {
 
     useEffect(() => {
         if (!xpBarRef.current) return;
-        anime({
-            targets: xpBarRef.current,
+        animate(xpBarRef.current, {
             width: `${progress}%`,
             duration: 900,
             easing: 'easeOutExpo',
