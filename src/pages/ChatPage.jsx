@@ -75,6 +75,21 @@ export function ChatPage() {
         };
     }, []);
 
+    const applyPunctuation = (text) => {
+        let t = text.trim();
+        if (!t) return t;
+        t = t.charAt(0).toUpperCase() + t.slice(1);
+        t = t.replace(/\bponto de exclamação\b/gi, '!');
+        t = t.replace(/\bponto de interrogação\b/gi, '?');
+        t = t.replace(/\bponto e vírgula\b/gi, ';');
+        t = t.replace(/\bdois pontos\b/gi, ':');
+        t = t.replace(/\bvírgula\b/gi, ',');
+        t = t.replace(/\bponto\b/gi, '.');
+        t = t.replace(/\bnova linha\b/gi, '\n');
+        if (!/[.!?,;:\n]$/.test(t)) t += '.';
+        return t;
+    };
+
     const startListening = () => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
@@ -82,19 +97,34 @@ export function ChatPage() {
             return;
         }
         if (isListening) {
-            recognitionRef.current?.abort();
+            recognitionRef.current?.stop();
             setIsListening(false);
             return;
         }
         const recognition = new SpeechRecognition();
         recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
+        recognition.interimResults = true;
         recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        let finalTranscript = '';
+
         recognition.onresult = (e) => {
-            const transcript = e.results[0][0].transcript;
-            setInput(transcript);
+            let interim = '';
+            finalTranscript = '';
+            for (let i = 0; i < e.results.length; i++) {
+                if (e.results[i].isFinal) {
+                    finalTranscript += e.results[i][0].transcript;
+                } else {
+                    interim += e.results[i][0].transcript;
+                }
+            }
+            setInput(finalTranscript ? applyPunctuation(finalTranscript) : interim);
         };
-        recognition.onend = () => setIsListening(false);
+        recognition.onend = () => {
+            if (finalTranscript) setInput(applyPunctuation(finalTranscript));
+            setIsListening(false);
+        };
         recognition.onerror = () => setIsListening(false);
         recognitionRef.current = recognition;
         recognition.start();
