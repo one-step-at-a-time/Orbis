@@ -82,7 +82,7 @@ export function MissionProvider({ children }) {
     }, []);
 
     const toggleMission = useCallback((missionId) => {
-        const mission = DAILY_MISSIONS.find(m => m.id === missionId);
+        const mission = missions.find(m => m.id === missionId);
         if (!mission || mission.type === 'counter') return;
 
         const isCompleted = !!missionState.completed[missionId];
@@ -113,7 +113,7 @@ export function MissionProvider({ children }) {
     }, [missionState, gainXPAmount, applyPenalty, applyStatBonus]);
 
     const updateWaterCount = useCallback((count) => {
-        const mission = DAILY_MISSIONS.find(m => m.id === 'agua');
+        const mission = missions.find(m => m.id === 'agua');
         const clamped = Math.min(Math.max(0, count), mission.max);
         const prevCount = missionState.progress['agua'] || 0;
         const wasCompleted = !!missionState.completed['agua'];
