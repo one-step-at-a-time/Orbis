@@ -36,7 +36,7 @@ export function useClaudeChat() {
     const [loading, setLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState(null);
-    const { addTask, addFinance, addHabit, addReminder } = useAppData();
+    const { addTask, addFinance, addHabit, addReminder, addProject } = useAppData();
 
     // Read keys fresh from localStorage on every render (not cached in React state)
     const provider = getKey('orbis_ai_provider') || 'gemini';
@@ -217,10 +217,11 @@ export function useClaudeChat() {
     const executeAction = (actionObj) => {
         const { action, data } = actionObj;
         switch (action) {
-            case 'CREATE_TASK': addTask(data); break;
+            case 'CREATE_TASK': addTask({ status: 'pendente', ...data }); break;
             case 'CREATE_FINANCE': addFinance(data); break;
-            case 'CREATE_HABIT': addHabit(data); break;
+            case 'CREATE_HABIT': addHabit({ icone: '✨', metaMensal: 30, ...data }); break;
             case 'CREATE_REMINDER': addReminder(data); break;
+            case 'CREATE_PROJECT': addProject({ cor: '#06b6d4', ...data }); break;
             default: console.warn("Ação desconhecida:", action);
         }
     };
