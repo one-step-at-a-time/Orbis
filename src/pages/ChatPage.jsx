@@ -105,27 +105,23 @@ export function ChatPage() {
         recognition.lang = 'pt-BR';
         recognition.interimResults = true;
         recognition.maxAlternatives = 1;
-        recognition.continuous = false;
+        recognition.continuous = true;
 
         let finalTranscript = '';
 
         recognition.onresult = (e) => {
             let interim = '';
-            finalTranscript = '';
-            for (let i = 0; i < e.results.length; i++) {
+            for (let i = e.resultIndex; i < e.results.length; i++) {
                 if (e.results[i].isFinal) {
-                    finalTranscript += e.results[i][0].transcript;
+                    finalTranscript += e.results[i][0].transcript + ' ';
                 } else {
                     interim += e.results[i][0].transcript;
                 }
             }
-            setInput(finalTranscript ? applyPunctuation(finalTranscript) : interim);
+            setInput(applyPunctuation((finalTranscript + interim).trim()));
         };
-        recognition.onend = () => {
-            if (finalTranscript) setInput(applyPunctuation(finalTranscript));
-            setIsListening(false);
-        };
-        recognition.onerror = () => setIsListening(false);
+        recognition.onend = () => setIsListening(false);
+        recognition.onerror = (e) => { if (e.error !== 'aborted') setIsListening(false); };
         recognitionRef.current = recognition;
         recognition.start();
         setIsListening(true);
