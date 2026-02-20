@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Bot, Mic, Send, AlertCircle, Key, X } from 'lucide-react';
+import { User, Bot, Mic, Send, AlertCircle, Key, X, Trash2 } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -55,7 +55,7 @@ export function ChatPage() {
 
     // UI state
     const [messages, setMessages] = useLocalStorage('orbis_chat_history', [
-        { id: "w", tipo: "ia", mensagem: "Olá! Sou The System, seu assistente pessoal. Como posso ajudar você hoje? ⚡\n\nVocê pode me pedir para:\n• Criar tarefas, hábitos, lembretes\n• Registrar despesas e receitas\n• Consultar sua agenda\n• E muito mais!", timestamp: new Date().toISOString() }
+        { id: "w", tipo: "ia", mensagem: "[ SISTEMA ]: Conexão estabelecida, Caçador.\n\nNúcleo operacional ativo. Todos os subsistemas funcionando.\n\nCapacidades disponíveis:\n- Registrar missões, tarefas e projetos\n- Criar hábitos e lembretes\n- Gerenciar recursos financeiros\n- Consultar dados externos em tempo real\n\nAguardando instrução.", timestamp: new Date().toISOString() }
     ]);
     const [input, setInput] = useState("");
     const [tempKey, setTempKey] = useState("");
@@ -136,9 +136,18 @@ export function ChatPage() {
                     <h1 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 20, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#06b6d4", textShadow: "0 0 16px rgba(6,182,212,0.4)" }}>[ CHAT ]</h1>
                     <p style={{ color: "var(--text-muted)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.04em" }}>INTERFACE DE COMUNICAÇÃO</p>
                 </div>
-                <button className="btn-ghost" onClick={() => setShowKeyInput(!showKeyInput)}>
-                    <Key size={18} color={hasKey ? "var(--primary)" : "var(--text-muted)"} />
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                        className="btn-ghost"
+                        onClick={() => { if (window.confirm('Limpar histórico do chat?')) { setMessages([{ id: "w", tipo: "ia", mensagem: "[ SISTEMA ]: Conexão estabelecida, Caçador.\n\nNúcleo operacional ativo. Todos os subsistemas funcionando.\n\nCapacidades disponíveis:\n- Registrar missões, tarefas e projetos\n- Criar hábitos e lembretes\n- Gerenciar recursos financeiros\n- Consultar dados externos em tempo real\n\nAguardando instrução.", timestamp: new Date().toISOString() }]); }}}
+                        title="Limpar conversa"
+                    >
+                        <Trash2 size={16} color="var(--text-dim)" />
+                    </button>
+                    <button className="btn-ghost" onClick={() => setShowKeyInput(!showKeyInput)}>
+                        <Key size={18} color={hasKey ? "var(--primary)" : "var(--text-muted)"} />
+                    </button>
+                </div>
             </div>
 
             {showKeyInput && (

@@ -25,25 +25,43 @@ export function AnalisesPage() {
 
     const metrics = [
         { title: "Taxa de Conclusão", value: `${taskRate}%`, icon: CheckCircle2, color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-        { title: "Produtividade", value: `${Math.min(taskRate + 12, 100)}%`, icon: Activity, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-        { title: "Saúde Financeira", value: `${saldo > 0 ? 85 : 45}%`, icon: DollarSign, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+        { title: "Produtividade", value: `${Math.min(taskRate + habitRate, 100) > 0 ? Math.round((taskRate + habitRate) / 2) : 0}%`, icon: Activity, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
+        { title: "Saúde Financeira", value: receitas > 0 ? `${Math.min(Math.round((saldo / receitas) * 100 + 50), 100)}%` : (saldo >= 0 ? "100%" : "0%"), icon: DollarSign, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
         { title: "Consistência Hábitos", value: `${habitRate}%`, icon: Target, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
     ];
 
-    const history = [
-        { mes: "Out", tarefas: 12, financeiro: 1200 },
-        { mes: "Nov", tarefas: 18, financeiro: 1500 },
-        { mes: "Dez", tarefas: 15, financeiro: -200 },
-        { mes: "Jan", tarefas: 22, financeiro: 2100 },
-        { mes: "Fev", tarefas: completed, financeiro: saldo },
-    ];
+    // Últimos 5 meses de dados reais agrupados por mês
+    const now = new Date();
+    const history = Array.from({ length: 5 }, (_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (4 - i), 1);
+        const mesKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+        const tarefasMes = tasks.filter(t => t.status === 'concluida' && (t.dataPrazo || '').startsWith(mesKey)).length;
+        const receitasMes = finances.filter(f => f.tipo === 'receita' && (f.data || '').startsWith(mesKey)).reduce((a, f) => a + f.valor, 0);
+        const despesasMes = finances.filter(f => f.tipo === 'despesa' && (f.data || '').startsWith(mesKey)).reduce((a, f) => a + f.valor, 0);
+        return { mes: label.charAt(0).toUpperCase() + label.slice(1), tarefas: tarefasMes, financeiro: receitasMes - despesasMes };
+    });
 
-    const spendingData = [
-        { name: "Moradia", value: 40, color: "#3b82f6" },
-        { name: "Alimentação", value: 25, color: "#06b6d4" },
-        { name: "Lazer", value: 15, color: "#8b5cf6" },
-        { name: "Outros", value: 20, color: "#64748b" },
-    ];
+    // Gastos por categoria — dados reais das finanças
+    const CHART_COLORS = ["#3b82f6", "#06b6d4", "#8b5cf6", "#f59e0b", "#22c55e", "#ef4444", "#ec4899", "#64748b"];
+    const despesasByCategory = finances
+        .filter(f => f.tipo === 'despesa')
+        .reduce((acc, f) => {
+            const cat = f.categoria || 'Outros';
+            acc[cat] = (acc[cat] || 0) + f.valor;
+            return acc;
+        }, {});
+    const totalDespesas = Object.values(despesasByCategory).reduce((a, v) => a + v, 0);
+    const spendingData = Object.entries(despesasByCategory).length > 0
+        ? Object.entries(despesasByCategory)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 6)
+            .map(([name, value], i) => ({
+                name,
+                value: totalDespesas > 0 ? Math.round((value / totalDespesas) * 100) : 0,
+                color: CHART_COLORS[i % CHART_COLORS.length]
+            }))
+        : [{ name: "Sem dados", value: 100, color: "#64748b" }];
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -154,23 +172,36 @@ export function AnalisesPage() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 32 }}>
                     <div>
-                        <h4 style={{ fontWeight: 600, fontSize: 14, color: "var(--text-muted)", marginBottom: 12 }}>PRODUTIVIDADE</h4>
+                        <h4 style={{ fontWeight: 600, fontSize: 14, color: "var(--text-muted)", marginBottom: 12 }}>TAREFAS</h4>
                         <p style={{ fontSize: 15, lineHeight: 1.6 }}>
-                            Sua produtividade em tarefas aumentou <span style={{ color: "#22c55e", fontWeight: 700 }}>15%</span> em relação ao mês anterior.
-                            O horário mais produtivo tem sido entre <span style={{ fontWeight: 600 }}>09:00 e 11:00</span>.
+                            {tasks.length === 0
+                                ? "Nenhuma tarefa cadastrada ainda. Comece criando sua primeira missão."
+                                : taskRate >= 70
+                                    ? <><span style={{ color: "#22c55e", fontWeight: 700 }}>{completed}</span> de {tasks.length} tarefas concluídas ({taskRate}%). Excelente desempenho! Continue assim.</>
+                                    : <>{completed} de {tasks.length} tarefas concluídas ({taskRate}%). Há <span style={{ color: "#ef4444", fontWeight: 700 }}>{tasks.filter(t => t.status === 'atrasada').length} atrasadas</span> aguardando atenção.</>
+                            }
                         </p>
                     </div>
                     <div>
                         <h4 style={{ fontWeight: 600, fontSize: 14, color: "var(--text-muted)", marginBottom: 12 }}>FINANÇAS</h4>
                         <p style={{ fontSize: 15, lineHeight: 1.6 }}>
-                            O gasto com <span style={{ fontWeight: 600 }}>Alimentação</span> está 10% acima do orçamento.
-                            Por outro lado, você economizou em <span style={{ color: "#22c55e", fontWeight: 700 }}>Lazer</span> este mês.
+                            {finances.length === 0
+                                ? "Nenhuma transação registrada. Registre receitas e despesas para ver análises."
+                                : saldo >= 0
+                                    ? <>Saldo positivo de <span style={{ color: "#22c55e", fontWeight: 700 }}>R$ {saldo.toFixed(2).replace('.', ',')}</span>. {spendingData[0]?.name !== 'Sem dados' ? `Maior gasto: ${spendingData[0]?.name}.` : ''}</>
+                                    : <>Saldo negativo de <span style={{ color: "#ef4444", fontWeight: 700 }}>R$ {Math.abs(saldo).toFixed(2).replace('.', ',')}</span>. Considere revisar seus gastos.</>
+                            }
                         </p>
                     </div>
                     <div>
                         <h4 style={{ fontWeight: 600, fontSize: 14, color: "var(--text-muted)", marginBottom: 12 }}>HÁBITOS</h4>
                         <p style={{ fontSize: 15, lineHeight: 1.6 }}>
-                            Sua consistência em hábitos está excelente. Continue assim para completar o ciclo de <span style={{ fontWeight: 600 }}>21 dias</span> e consolidar a mudança.
+                            {habits.length === 0
+                                ? "Nenhum hábito cadastrado. Construa disciplina criando seus primeiros hábitos."
+                                : habitRate >= 80
+                                    ? <>Consistência de <span style={{ color: "#22c55e", fontWeight: 700 }}>{habitRate}%</span>. Excelente! Você está no caminho certo para consolidar seus hábitos.</>
+                                    : <>Consistência de <span style={{ color: "#f59e0b", fontWeight: 700 }}>{habitRate}%</span> nos hábitos. Tente manter a sequência diária para melhorar.</>
+                            }
                         </p>
                     </div>
                 </div>

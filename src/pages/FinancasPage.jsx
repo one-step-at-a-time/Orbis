@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight, Trash2 } from 'lucide-react';
 import { StatsCard } from '../components/Common';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
 
 export function FinancasPage() {
-    const { finances } = useAppData();
+    const { finances, deleteFinance } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const receitas = finances.filter(f => f.tipo === "receita").reduce((a, f) => a + f.valor, 0);
@@ -44,9 +44,19 @@ export function FinancasPage() {
                                     <p style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatDate(f.data)} • {f.categoria}</p>
                                 </div>
                             </div>
-                            <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: f.tipo === "receita" ? "#22c55e" : "#ef4444" }}>
-                                {f.tipo === "receita" ? "+" : "-"}{formatCurrency(f.valor)}
-                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: f.tipo === "receita" ? "#22c55e" : "#ef4444" }}>
+                                    {f.tipo === "receita" ? "+" : "-"}{formatCurrency(f.valor)}
+                                </span>
+                                <button
+                                    className="btn-ghost"
+                                    onClick={() => deleteFinance(f.id)}
+                                    title="Excluir lançamento"
+                                    style={{ padding: 4, color: "var(--text-dim)" }}
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

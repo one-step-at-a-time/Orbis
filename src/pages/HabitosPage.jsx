@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Flame, CheckCircle2, TrendingUp, Check, Plus } from 'lucide-react';
+import { Target, Flame, CheckCircle2, TrendingUp, Check, Plus, Trash2 } from 'lucide-react';
 import { StatsCard, ProgressBar } from '../components/Common';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
@@ -7,7 +7,7 @@ import { NewHabitModal } from '../components/Modals';
 import { useAppData } from '../context/DataContext';
 
 export function HabitosPage() {
-    const { habits, addHabitLog } = useAppData();
+    const { habits, addHabitLog, deleteHabit } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const todayStr = new Date().toISOString().split('T')[0];
 
@@ -91,7 +91,17 @@ export function HabitosPage() {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                                 <span style={{ fontWeight: 600, fontSize: 14 }}>{h.icone} {h.titulo}</span>
-                                                {done && <Flame size={14} color="#f59e0b" />}
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                    {done && <Flame size={14} color="#f59e0b" />}
+                                                    <button
+                                                        className="btn-ghost"
+                                                        onClick={() => deleteHabit(h.id)}
+                                                        title="Excluir hábito"
+                                                        style={{ padding: 4, color: "var(--text-dim)" }}
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
                                             </div>
                                             {h.descricao && <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{h.descricao}</p>}
                                             <div style={{ marginTop: 8 }}>

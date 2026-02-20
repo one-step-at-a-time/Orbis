@@ -29,6 +29,7 @@ export function DataProvider({ children }) {
     const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
 
     const addHabit = (habit) => setHabits([...habits, { ...habit, id: Date.now().toString(), logs: [] }]);
+    const deleteHabit = (id) => setHabits(habits.filter(h => h.id !== id));
     const addHabitLog = (habitId, date) => {
         setHabits(habits.map(h => {
             if (h.id !== habitId) return h;
@@ -48,14 +49,15 @@ export function DataProvider({ children }) {
     const deleteReminder = (id) => setReminders(reminders.filter(r => r.id !== id));
 
     const addFinance = (entry) => setFinances([...finances, { ...entry, id: Date.now().toString() }]);
+    const deleteFinance = (id) => setFinances(finances.filter(f => f.id !== id));
 
     return (
         <DataContext.Provider value={{
             tasks, tasksCount: tasks.length, addTask, updateTask, deleteTask,
-            habits, addHabit, addHabitLog, setHabits,
+            habits, addHabit, addHabitLog, deleteHabit, setHabits,
             projects, addProject, updateProject, deleteProject,
             reminders, addReminder, deleteReminder,
-            finances, addFinance
+            finances, addFinance, deleteFinance
         }}>
             {children}
         </DataContext.Provider>

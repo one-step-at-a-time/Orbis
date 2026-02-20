@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, Trash2 } from 'lucide-react';
 import { Badge, ProgressBar } from '../components/Common';
 import { useAppData } from '../context/DataContext';
 import { Modal } from '../components/Modal';
@@ -7,7 +7,7 @@ import { PageHeader } from '../components/PageHeader';
 import { NewProjectModal } from '../components/Modals';
 
 export function ProjetosPage() {
-    const { projects } = useAppData();
+    const { projects, deleteProject } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
 
@@ -31,7 +31,17 @@ export function ProjetosPage() {
                                     <div style={{ width: 12, height: 12, borderRadius: "50%", background: p.cor }} />
                                     <h3 style={{ fontWeight: 700, fontSize: 16 }}>{p.titulo}</h3>
                                 </div>
-                                <Badge color={s.color} bg={s.bg}>{p.status}</Badge>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                    <Badge color={s.color} bg={s.bg}>{p.status}</Badge>
+                                    <button
+                                        className="btn-ghost"
+                                        onClick={() => deleteProject(p.id)}
+                                        title="Excluir projeto"
+                                        style={{ padding: 4, color: "var(--text-dim)" }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
                             </div>
                             {p.descricao && <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>{p.descricao}</p>}
                             <div style={{ display: "flex", gap: 16, marginBottom: 14 }}>

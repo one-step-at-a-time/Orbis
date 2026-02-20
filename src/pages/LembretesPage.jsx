@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Plus, Calendar } from 'lucide-react';
+import { Bell, Plus, Calendar, Trash2 } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { formatDateTime } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
@@ -8,7 +8,7 @@ import { PageHeader } from '../components/PageHeader';
 import { NewReminderModal } from '../components/Modals';
 
 export function LembretesPage() {
-    const { reminders } = useAppData();
+    const { reminders, deleteReminder } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -39,6 +39,14 @@ export function LembretesPage() {
                                         <Badge color={imp.color} bg={imp.bg}>{r.importancia}</Badge>
                                     </div>
                                 </div>
+                                <button
+                                    className="btn-ghost"
+                                    onClick={() => deleteReminder(r.id)}
+                                    title="Excluir lembrete"
+                                    style={{ padding: 6, color: "var(--text-dim)", alignSelf: "flex-start" }}
+                                >
+                                    <Trash2 size={15} />
+                                </button>
                             </div>
                         </div>
                     );

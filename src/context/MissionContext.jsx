@@ -4,16 +4,27 @@ import { usePlayer } from './PlayerContext';
 
 const MissionContext = createContext(null);
 
-export const DAILY_MISSIONS = [
-    { id: 'flexoes',      label: '100 Flexões',          type: 'boolean', xp: 150, stats: { STR: 2 } },
-    { id: 'abdominais',   label: '100 Abdominais',        type: 'boolean', xp: 120, stats: { STR: 1 } },
-    { id: 'agachamentos', label: '100 Agachamentos',      type: 'boolean', xp: 120, stats: { STR: 1, AGI: 1 } },
-    { id: 'corrida',      label: '5km de Corrida',        type: 'boolean', xp: 200, stats: { AGI: 2 } },
-    { id: 'agua',         label: "8 Copos d'Água",        type: 'counter', max: 8,  xp: 80,  stats: { VIT: 2 } },
-    { id: 'sono',         label: '7h+ de Sono',           type: 'boolean', xp: 100, stats: { VIT: 2 } },
-    { id: 'leitura',      label: '30min de Leitura',      type: 'boolean', xp: 80,  stats: { INT: 2 } },
-    { id: 'meditacao',    label: '15min de Meditação',    type: 'boolean', xp: 60,  stats: { SEN: 2 } },
-];
+// Missões escaláveis com o level do Caçador
+// Reps: 10 em Lv1, +10 a cada 5 levels → Lv5: 20, Lv10: 30, Lv20: 50
+// Corrida: 1km em Lv1, +1km a cada 5 levels → Lv5: 2km, Lv10: 3km...
+// Leitura: 10min em Lv1, +10min a cada 10 levels
+// Meditação: 5min em Lv1, +5min a cada 10 levels
+export function getDailyMissions(level) {
+    const reps    = 10 + Math.floor(level / 5) * 10;
+    const km      = Math.min(10, 1 + Math.floor((level - 1) / 5));
+    const readMin = 10 + Math.floor((level - 1) / 10) * 10;
+    const medMin  = 5  + Math.floor((level - 1) / 10) * 5;
+    return [
+        { id: 'flexoes',      label: `${reps} Flexões`,          type: 'boolean', xp: 150, stats: { STR: 2 } },
+        { id: 'abdominais',   label: `${reps} Abdominais`,        type: 'boolean', xp: 120, stats: { STR: 1 } },
+        { id: 'agachamentos', label: `${reps} Agachamentos`,      type: 'boolean', xp: 120, stats: { STR: 1, AGI: 1 } },
+        { id: 'corrida',      label: `${km}km de Corrida`,        type: 'boolean', xp: 200, stats: { AGI: 2 } },
+        { id: 'agua',         label: "8 Copos d'Água",            type: 'counter', max: 8,  xp: 80,  stats: { VIT: 2 } },
+        { id: 'sono',         label: '7h+ de Sono',               type: 'boolean', xp: 100, stats: { VIT: 2 } },
+        { id: 'leitura',      label: `${readMin}min de Leitura`,  type: 'boolean', xp: 80,  stats: { INT: 2 } },
+        { id: 'meditacao',    label: `${medMin}min de Meditação`, type: 'boolean', xp: 60,  stats: { SEN: 2 } },
+    ];
+}
 
 export const BAD_HABITS = [
     { id: 'dormi_tarde',  label: 'Dormi após meia-noite',     xp: 50, statKey: 'VIT', statLoss: 1 },
@@ -36,7 +47,8 @@ const INITIAL_MISSION_STATE = {
 };
 
 export function MissionProvider({ children }) {
-    const { gainXPAmount, applyPenalty, applyStatBonus } = usePlayer();
+    const { gainXPAmount, applyPenalty, applyStatBonus, player } = usePlayer();
+    const missions = getDailyMissions(player.level);
     const [missionState, setMissionState] = useLocalStorage('orbis_missions', INITIAL_MISSION_STATE);
     const resetDoneRef = useRef(false);
 
@@ -48,7 +60,7 @@ export function MissionProvider({ children }) {
 
         if (missionState.lastResetDate && missionState.lastResetDate !== today) {
             // Apply -50 XP for each incomplete mission
-            DAILY_MISSIONS.forEach(mission => {
+            missions.forEach(mission => {
                 const isCompleted = mission.type === 'counter'
                     ? (missionState.progress[mission.id] || 0) >= mission.max
                     : !!missionState.completed[mission.id];
@@ -145,16 +157,16 @@ export function MissionProvider({ children }) {
         applyPenalty(habit.xp, habit.statKey, habit.statLoss);
     }, [applyPenalty]);
 
-    const completedCount = DAILY_MISSIONS.filter(m => {
+    const completedCount = missions.filter(m => {
         if (m.type === 'counter') return (missionState.progress[m.id] || 0) >= m.max;
         return !!missionState.completed[m.id];
     }).length;
 
-    const pendingCount = DAILY_MISSIONS.length - completedCount;
+    const pendingCount = missions.length - completedCount;
 
     return (
         <MissionContext.Provider value={{
-            missions: DAILY_MISSIONS,
+            missions,
             badHabits: BAD_HABITS,
             missionState,
             toggleMission,

@@ -24,6 +24,18 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Auto-login: se há perfil salvo, entra direto sem mostrar login
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('orbis_hunter_profile');
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile?.nome) login(profile);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   React.useEffect(() => {
     const handleK = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -95,7 +107,7 @@ export default function App() {
 
       {/* Main Content */}
       <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <Header user={user} onLogout={logout} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
+        <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
         <main style={{ flex: 1, padding: 24, maxWidth: 1200 }}>
           <AnimatePresence mode="wait">
             <motion.div

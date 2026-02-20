@@ -17,6 +17,7 @@ export function DashboardPage() {
     const taskRate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const mesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
     const habitsToday = habits.filter(h => h.logs.some(l => l.data === todayStr)).length;
     const habitRate = habits.length > 0 ? Math.round((habits.reduce((a, h) => a + h.logs.length, 0) / habits.reduce((a, h) => a + h.metaMensal, 0)) * 100) : 0;
 
@@ -43,7 +44,7 @@ export function DashboardPage() {
                 <div className="card" style={{ padding: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                         <CheckCircle2 size={18} color="var(--primary)" />
-                        <span style={{ fontWeight: 600 }}>Tarefas — Fevereiro</span>
+                        <span style={{ fontWeight: 600 }}>Tarefas — {mesAtual}</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16, textAlign: "center" }}>
                         <div><p className="stat-number" style={{ fontSize: 24, color: "#22c55e" }}>{completed}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídas</p></div>
@@ -60,7 +61,7 @@ export function DashboardPage() {
                 <div className="card" style={{ padding: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                         <Folder size={18} color="var(--primary)" />
-                        <span style={{ fontWeight: 600 }}>Projetos — Fevereiro</span>
+                        <span style={{ fontWeight: 600 }}>Projetos — {mesAtual}</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16, textAlign: "center" }}>
                         <div><p className="stat-number" style={{ fontSize: 24, color: "#22c55e" }}>{projConcluidos}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídos</p></div>
@@ -69,15 +70,15 @@ export function DashboardPage() {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Progresso geral</span>
-                        <span className="stat-number" style={{ fontSize: 16, color: "var(--primary)" }}>{Math.round(projects.reduce((a, p) => a + p.tarefasConcluidas, 0) / projects.reduce((a, p) => a + p.totalTarefas, 0) * 100)}%</span>
+                        <span className="stat-number" style={{ fontSize: 16, color: "var(--primary)" }}>{(() => { const total = projects.reduce((a, p) => a + p.totalTarefas, 0); return total > 0 ? Math.round(projects.reduce((a, p) => a + p.tarefasConcluidas, 0) / total * 100) : 0; })()}%</span>
                     </div>
-                    <ProgressBar value={projects.reduce((a, p) => a + p.tarefasConcluidas, 0) / projects.reduce((a, p) => a + p.totalTarefas, 0) * 100} />
+                    <ProgressBar value={(() => { const total = projects.reduce((a, p) => a + p.totalTarefas, 0); return total > 0 ? projects.reduce((a, p) => a + p.tarefasConcluidas, 0) / total * 100 : 0; })()} />
                 </div>
 
                 <div className="card" style={{ padding: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                         <Target size={18} color="var(--primary)" />
-                        <span style={{ fontWeight: 600 }}>Hábitos — Fevereiro</span>
+                        <span style={{ fontWeight: 600 }}>Hábitos — {mesAtual}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         {[
@@ -99,7 +100,7 @@ export function DashboardPage() {
                 <div className="card" style={{ padding: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                         <TrendingUp size={18} color="var(--primary)" />
-                        <span style={{ fontWeight: 600 }}>Resumo Financeiro — Fevereiro</span>
+                        <span style={{ fontWeight: 600 }}>Resumo Financeiro — {mesAtual}</span>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 10, background: "rgba(34,197,94,0.06)" }}>
