@@ -1,4 +1,5 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
+import anime from 'animejs';
 import { X, Zap, Download, Upload } from 'lucide-react';
 import { cn } from '../utils/formatters';
 import { usePlayer } from '../context/PlayerContext';
@@ -68,6 +69,17 @@ function PlayerCard() {
     const { rank, color, glow } = getRank(player.level);
     const xpNeeded = xpForNextLevel(player.level);
     const progress = Math.min((player.xp / xpNeeded) * 100, 100);
+    const xpBarRef = useRef(null);
+
+    useEffect(() => {
+        if (!xpBarRef.current) return;
+        anime({
+            targets: xpBarRef.current,
+            width: `${progress}%`,
+            duration: 900,
+            easing: 'easeOutExpo',
+        });
+    }, [progress]);
 
     return (
         <div style={{
@@ -111,12 +123,11 @@ function PlayerCard() {
 
             {/* XP Bar */}
             <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{
+                <div ref={xpBarRef} style={{
                     height: '100%', width: `${progress}%`,
                     background: `linear-gradient(90deg, ${color}, ${color}aa)`,
                     boxShadow: `0 0 6px ${glow}`,
                     borderRadius: 4,
-                    transition: 'width 0.6s ease',
                 }} />
             </div>
             <p style={{ fontSize: 9, color: '#334155', marginTop: 4, fontFamily: "'JetBrains Mono', monospace", textAlign: 'right' }}>
