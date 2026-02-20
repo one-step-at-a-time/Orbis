@@ -141,14 +141,14 @@ export function ChatPage() {
         if (elKey) {
             try {
                 audioRef.current?.pause();
-                const voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam — grave e autoritário
+                const voiceId = 'onwK4e9ZLuTAKqWW03F9'; // Daniel — frio, preciso, sistema
                 const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
                     method: 'POST',
                     headers: { 'xi-api-key': elKey, 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: clean,
                         model_id: 'eleven_multilingual_v2',
-                        voice_settings: { stability: 0.55, similarity_boost: 0.75, style: 0.1, use_speaker_boost: true },
+                        voice_settings: { stability: 0.85, similarity_boost: 0.45, style: 0, use_speaker_boost: false },
                     }),
                 });
                 if (!res.ok) throw new Error('ElevenLabs error');
