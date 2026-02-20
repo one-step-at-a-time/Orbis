@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Typewriter from 'typewriter-effect';
-import { User, Bot, Mic, Send, AlertCircle, Key, X, Trash2 } from 'lucide-react';
+import { User, Bot, Mic, MicOff, Send, AlertCircle, Key, X, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
@@ -62,7 +62,63 @@ export function ChatPage() {
     const [tempKey, setTempKey] = useState("");
     const [showKeyInput, setShowKeyInput] = useState(!hasKey);
     const [typingMsgId, setTypingMsgId] = useState(null);
+    const [isListening, setIsListening] = useState(false);
+    const [isTtsEnabled, setIsTtsEnabled] = useState(false);
     const scrollRef = useRef(null);
+    const recognitionRef = useRef(null);
+
+    // Limpa recursos de áudio ao desmontar
+    useEffect(() => {
+        return () => {
+            recognitionRef.current?.abort();
+            window.speechSynthesis?.cancel();
+        };
+    }, []);
+
+    const startListening = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert('Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.');
+            return;
+        }
+        if (isListening) {
+            recognitionRef.current?.abort();
+            setIsListening(false);
+            return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.onresult = (e) => {
+            const transcript = e.results[0][0].transcript;
+            setInput(transcript);
+        };
+        recognition.onend = () => setIsListening(false);
+        recognition.onerror = () => setIsListening(false);
+        recognitionRef.current = recognition;
+        recognition.start();
+        setIsListening(true);
+    };
+
+    const speak = (text) => {
+        if (!isTtsEnabled || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const clean = text
+            .replace(/\[ SISTEMA \]:/g, '')
+            .replace(/\[ ALERTA \]:/g, '')
+            .replace(/<br\s*\/?>/g, ' ')
+            .replace(/\n/g, ' ')
+            .trim();
+        const utterance = new SpeechSynthesisUtterance(clean);
+        utterance.lang = 'pt-BR';
+        utterance.rate = 0.92;
+        utterance.pitch = 0.85;
+        const voices = window.speechSynthesis.getVoices();
+        const ptVoice = voices.find(v => v.lang.startsWith('pt'));
+        if (ptVoice) utterance.voice = ptVoice;
+        window.speechSynthesis.speak(utterance);
+    };
 
     // Auto-dismiss de erros após 6 segundos
     useEffect(() => {
@@ -96,6 +152,7 @@ export function ChatPage() {
                 timestamp: new Date().toISOString()
             }]);
             setTypingMsgId(newId);
+            speak(aiResponseText);
         }
     };
 
@@ -147,6 +204,14 @@ export function ChatPage() {
                         title="Limpar conversa"
                     >
                         <Trash2 size={16} color="var(--text-dim)" />
+                    </button>
+                    <button
+                        className="btn-ghost"
+                        onClick={() => { setIsTtsEnabled(v => !v); window.speechSynthesis?.cancel(); }}
+                        title={isTtsEnabled ? "Desativar voz" : "Ativar voz do Sistema"}
+                        style={{ color: isTtsEnabled ? "#06b6d4" : "var(--text-muted)" }}
+                    >
+                        {isTtsEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
                     </button>
                     <button className="btn-ghost" onClick={() => setShowKeyInput(!showKeyInput)}>
                         <Key size={18} color={hasKey ? "var(--primary)" : "var(--text-muted)"} />
@@ -332,8 +397,18 @@ export function ChatPage() {
                             disabled={loading || !hasKey}
                             style={{ paddingRight: 44 }}
                         />
-                        <button className="btn-ghost" style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }} disabled={!hasKey}>
-                            <Mic size={16} />
+                        <button
+                            className="btn-ghost"
+                            onClick={startListening}
+                            disabled={!hasKey}
+                            title={isListening ? "Parar escuta" : "Falar com The System"}
+                            style={{
+                                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
+                                color: isListening ? "#ef4444" : "var(--text-muted)",
+                                animation: isListening ? "pulse-ring 1.5s cubic-bezier(0.4,0,0.6,1) infinite" : "none",
+                            }}
+                        >
+                            {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                         </button>
                     </div>
                     <button className="btn btn-primary" onClick={handleSend} disabled={!input.trim() || loading || !hasKey} style={{ padding: "12px 16px" }}>
