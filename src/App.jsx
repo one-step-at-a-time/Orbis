@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
 import { NotificationTray } from './components/NotificationTray';
 import { LevelUpModal } from './components/LevelUpModal';
+import { FocoWidget } from './components/FocoWidget';
 
 export default function App() {
   const { user, login, logout } = useAppAuth();
@@ -129,6 +130,7 @@ export default function App() {
       />
       <NotificationTray />
       <LevelUpModal />
+      <FocoWidget />
     </div>
   );
 }
