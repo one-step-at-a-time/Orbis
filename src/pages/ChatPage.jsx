@@ -75,18 +75,11 @@ export function ChatPage() {
         };
     }, []);
 
-    const applyPunctuation = (text) => {
+    const applyPunctuation = (text, isFinal = false) => {
         let t = text.trim();
         if (!t) return t;
         t = t.charAt(0).toUpperCase() + t.slice(1);
-        t = t.replace(/\bponto de exclamação\b/gi, '!');
-        t = t.replace(/\bponto de interrogação\b/gi, '?');
-        t = t.replace(/\bponto e vírgula\b/gi, ';');
-        t = t.replace(/\bdois pontos\b/gi, ':');
-        t = t.replace(/\bvírgula\b/gi, ',');
-        t = t.replace(/\bponto\b/gi, '.');
-        t = t.replace(/\bnova linha\b/gi, '\n');
-        if (!/[.!?,;:\n]$/.test(t)) t += '.';
+        if (isFinal && !/[.!?,;:]$/.test(t)) t += '.';
         return t;
     };
 
@@ -118,7 +111,8 @@ export function ChatPage() {
                     interim += e.results[i][0].transcript;
                 }
             }
-            setInput(applyPunctuation((finalTranscript + interim).trim()));
+            const combined = (finalTranscript + interim).trim();
+            setInput(applyPunctuation(combined, !interim));
         };
         recognition.onend = () => setIsListening(false);
         recognition.onerror = (e) => { if (e.error !== 'aborted') setIsListening(false); };
