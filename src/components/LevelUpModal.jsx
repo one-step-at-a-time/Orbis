@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ConfettiBoom from 'react-confetti-boom';
 import { usePlayer } from '../context/PlayerContext';
 
 export function LevelUpModal() {
@@ -22,6 +23,17 @@ export function LevelUpModal() {
             background: 'rgba(0,0,0,0.85)',
             animation: 'fadeIn 0.3s ease',
         }}>
+            <ConfettiBoom
+                x={0.5}
+                y={0.4}
+                particleCount={120}
+                deg={270}
+                shapeSize={10}
+                spreadDeg={60}
+                effectInterval={3000}
+                effectCount={1}
+                colors={[newRank.color, '#06b6d4', '#38bdf8', '#f59e0b', '#a855f7', '#22c55e']}
+            />
             <div onClick={e => e.stopPropagation()} style={{
                 background: 'linear-gradient(135deg, #0a0f1e, #0f1629)',
                 border: `1px solid ${newRank.color}`,
