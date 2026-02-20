@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Typewriter from 'typewriter-effect';
 import { User, Bot, Mic, Send, AlertCircle, Key, X, Trash2 } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -60,6 +61,7 @@ export function ChatPage() {
     const [input, setInput] = useState("");
     const [tempKey, setTempKey] = useState("");
     const [showKeyInput, setShowKeyInput] = useState(!hasKey);
+    const [typingMsgId, setTypingMsgId] = useState(null);
     const scrollRef = useRef(null);
 
     // Auto-dismiss de erros após 6 segundos
@@ -86,12 +88,14 @@ export function ChatPage() {
         const aiResponseText = await sendMessage(newMessages);
 
         if (aiResponseText) {
+            const newId = (Date.now() + 1).toString();
             setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
+                id: newId,
                 tipo: "ia",
                 mensagem: aiResponseText,
                 timestamp: new Date().toISOString()
             }]);
+            setTypingMsgId(newId);
         }
     };
 
@@ -281,7 +285,20 @@ export function ChatPage() {
                                 {msg.tipo === "usuario" ? <User size={14} color="var(--primary)" /> : <Bot size={14} color="white" />}
                             </div>
                             <div className={msg.tipo === "usuario" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ maxWidth: "75%", padding: "12px 16px" }}>
-                                <p style={{ fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{msg.mensagem}</p>
+                                {msg.tipo === "ia" && msg.id === typingMsgId ? (
+                                    <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+                                        <Typewriter
+                                            options={{ delay: 14, cursor: '▌', loop: false }}
+                                            onInit={(tw) => {
+                                                tw.typeString(msg.mensagem.replace(/\n/g, '<br />'))
+                                                  .callFunction(() => setTypingMsgId(null))
+                                                  .start();
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <p style={{ fontSize: 14, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{msg.mensagem}</p>
+                                )}
                                 <span style={{ fontSize: 11, opacity: 0.5, marginTop: 4, display: "block" }}>
                                     {new Date(msg.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
