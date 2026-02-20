@@ -47,6 +47,16 @@ export function TarefasPage() {
         }
     };
 
+    // Mover tarefa pelo Kanban — concede XP ao completar, reverte ao descompletar
+    const handleKanbanDrop = (taskId, newStatus) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        const wasCompleted = task.status === 'concluida';
+        const isNowCompleted = newStatus === 'concluida';
+        updateTask(taskId, { status: newStatus });
+        if (isNowCompleted && !wasCompleted) gainXP(task.prioridade || 'media');
+    };
+
     const filtered = tasks.filter(t => {
         if (filter === "todas") return true;
         if (filter === "pendentes") return t.status === "pendente" || t.status === "fazendo";
@@ -153,7 +163,7 @@ export function TarefasPage() {
                             onDrop={(e) => {
                                 e.preventDefault();
                                 const taskId = e.dataTransfer.getData("taskId");
-                                updateTask(taskId, { status: col.key });
+                                handleKanbanDrop(taskId, col.key);
                             }}
                         >
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>

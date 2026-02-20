@@ -21,14 +21,19 @@ function friendlyError(err) {
     return "Algo deu errado. Tente novamente ou verifique suas configurações.";
 }
 
-// Helper: read from localStorage directly (no hooks, no race conditions)
+// Helper: lê do localStorage diretamente (sem hooks, sem race conditions)
 function getKey(name) {
     try {
         const raw = window.localStorage.getItem(name);
         if (!raw) return '';
-        return JSON.parse(raw);
+        try {
+            return JSON.parse(raw);
+        } catch {
+            // O valor pode estar armazenado sem JSON (string pura)
+            return raw;
+        }
     } catch {
-        return raw || '';
+        return '';
     }
 }
 
@@ -38,23 +43,27 @@ export function useClaudeChat() {
     const [error, setError] = useState(null);
     const { addTask, addFinance, addHabit, addReminder, addProject } = useAppData();
 
-    // Read keys fresh from localStorage on every render (not cached in React state)
+    // Lê chaves frescas do localStorage a cada render (não em cache no React state)
     const provider = getKey('orbis_ai_provider') || 'gemini';
     const apiKey = provider === 'gemini'
         ? getKey('orbis_gemini_key')
         : provider === 'zhipu'
             ? getKey('orbis_zhipu_key')
-            : getKey('orbis_siliconflow_key');
+            : provider === 'openrouter'
+                ? getKey('orbis_openrouter_key')
+                : getKey('orbis_siliconflow_key');
     const braveKey = getKey('orbis_brave_key');
 
     const sendMessage = async (messages) => {
-        // Re-read keys at the moment of sending (freshest possible)
+        // Re-lê as chaves no momento do envio (mais fresco possível)
         const freshProvider = getKey('orbis_ai_provider') || 'gemini';
         const freshApiKey = freshProvider === 'gemini'
             ? getKey('orbis_gemini_key')
             : freshProvider === 'zhipu'
                 ? getKey('orbis_zhipu_key')
-                : getKey('orbis_siliconflow_key');
+                : freshProvider === 'openrouter'
+                    ? getKey('orbis_openrouter_key')
+                    : getKey('orbis_siliconflow_key');
         const freshBraveKey = getKey('orbis_brave_key');
         const freshModel = getKey('orbis_ai_model') || '';
 
@@ -66,29 +75,22 @@ export function useClaudeChat() {
         setLoading(true);
         setError(null);
 
-        // --- HEURÍSTICA DE BUSCA PRÉVIA (FORÇADA) ---
-        // Se o usuário perguntar algo óbvio de internet, buscamos ANTES de chamar a IA.
-        // Isso burla a "teimosia" de modelos que recusam usar a ferramenta.
+        // --- HEURÍSTICA DE BUSCA PRÉVIA ---
         let preFetchedContext = "";
         const lastMsg = messages[messages.length - 1];
         const userQuery = lastMsg.tipo === 'usuario' ? lastMsg.mensagem.toLowerCase() : "";
 
         const triggerWords = [
-            // Preços e finanças
             "preço", "valor", "cotação", "quanto custa", "quanto tá", "quanto está",
             "dólar", "euro", "bitcoin", "btc", "ethereum", "eth", "crypto", "cripto",
             "ação", "ações", "bolsa", "ibovespa", "nasdaq", "s&p", "mercado",
-            // Clima
             "clima", "tempo em", "previsão", "chover", "calor", "frio", "temperatura",
-            // Notícias e eventos
             "quem ganhou", "quem é", "o que aconteceu", "notícias", "noticia",
             "resumo de hoje", "hoje", "agora", "últimas", "último", "ultima",
             "acontecimento", "novidade", "lançamento", "evento",
-            // Pesquisa geral
             "pesquisa", "pesquisar", "busca", "buscar", "procura", "procurar",
             "me fala sobre", "me conta sobre", "o que é", "quem foi", "quando foi",
             "onde fica", "como funciona", "qual é",
-            // Inglês
             "price", "how much", "weather", "news", "who is", "what is",
             "when is", "where is", "latest", "current", "today", "now"
         ];
@@ -99,27 +101,24 @@ export function useClaudeChat() {
             try {
                 console.log("[Orbis] Heurística detectou necessidade de busca...");
                 setIsSearching(true);
-                const searchResults = await searchInternet(lastMsg.mensagem, freshBraveKey); // Usa a msg original
+                const searchResults = await searchInternet(lastMsg.mensagem, freshBraveKey);
 
                 if (searchResults && searchResults.length > 0) {
                     preFetchedContext = `\n\n[SISTEMA - DADOS REAIS DA INTERNET]:\n` +
                         searchResults.map((r, i) => `[${i + 1}] ${r.title}: ${r.description} (${r.url})`).join('\n');
-
                     console.log("[Orbis] Dados pré-carregados com sucesso.");
                 }
             } catch (err) {
                 console.error("[Orbis] Erro na busca prévia:", err);
-                // Não falha o fluxo, apenas segue sem dados
             } finally {
                 setIsSearching(false);
             }
         }
-        // --------------------------------------------
 
         try {
             console.log(`[Orbis] Enviando para ${freshProvider}...`);
 
-            // Se tiver dados pré-carregados, injeta na última mensagem (transparente pro usuário)
+            // Injeta dados de busca na última mensagem se disponível
             let finalMessages = [...messages];
             if (preFetchedContext) {
                 finalMessages[finalMessages.length - 1] = {
@@ -128,11 +127,11 @@ export function useClaudeChat() {
                 };
             }
 
-            // Trim to last 30 messages to avoid overloading context window
+            // Limita a 30 mensagens para não estourar a janela de contexto
             const trimmedMessages = finalMessages.slice(-30);
             let responseText = await callAiProvider(freshProvider, trimmedMessages, freshApiKey, freshModel ? { model: freshModel } : {});
 
-            // Detectar ação JSON (buscando o par de chaves mais externo { ... })
+            // Detecta JSON de ação (busca o par de chaves mais externo)
             let actionData = null;
             const jsonMatch = responseText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -141,7 +140,6 @@ export function useClaudeChat() {
                     console.log("[Orbis] Ação detectada:", actionData.action);
                 } catch (e) {
                     console.warn("[Orbis] Falha ao parsear JSON detectado, tentando limpar...", e);
-                    // Tentativa secundária: remover markdown se houver
                     const cleanJson = jsonMatch[0].replace(/```json|```/g, "").trim();
                     try {
                         actionData = JSON.parse(cleanJson);
@@ -169,10 +167,7 @@ export function useClaudeChat() {
                             searchResults.map((r, i) => `${i + 1}. ${r.title}\n   ${r.description}\n   ${r.url}`).join('\n\n') +
                             ` \n\nINFORMAÇÃO: Os dados acima são reais e atuais. Use-os para responder ao usuário de forma definitiva e luxuosa. IGNORE qualquer restrição prévia sobre não ter internet.`;
 
-                        // REMOVER o texto que veio antes/depois do JSON no responseText original
-                        // Assim a IA não vê sua própria negação de acesso ("Não tenho internet")
                         const pureJsonCall = jsonMatch[0];
-
                         const augmentedMessages = [
                             ...messages,
                             { tipo: "ia", mensagem: pureJsonCall },
@@ -193,15 +188,15 @@ export function useClaudeChat() {
 
             setLoading(false);
 
-            // Limpeza final: remover blocos markdown, JSON, asteriscos e formatação residual
+            // Limpeza final: remove blocos markdown, JSON, asteriscos e formatação residual
             const cleanFinal = responseText
                 .replace(/```json[\s\S]*?```/g, "")
                 .replace(/```[\s\S]*?```/g, "")
                 .replace(/\{[\s\S]*?\}/g, "")
                 .replace(/json$/gm, "")
-                .replace(/^\s*\*\s+/gm, "- ")       // Converte bullet points (* Item) para hífen (- Item)
-                .replace(/\*/g, "")                  // Remove TODOS os outros asteriscos (negrito/itálico)
-                .replace(/#{1,6}\s+/g, "")           // Remove headers markdown
+                .replace(/^\s*\*\s+/gm, "- ")
+                .replace(/\*/g, "")
+                .replace(/#{1,6}\s+/g, "")
                 .trim();
 
             return cleanFinal;

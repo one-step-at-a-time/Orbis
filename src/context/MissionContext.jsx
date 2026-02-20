@@ -5,34 +5,30 @@ import { usePlayer } from './PlayerContext';
 const MissionContext = createContext(null);
 
 // Missões escaláveis com o level do Caçador
-// Reps: 10 em Lv1, +10 a cada 5 levels → Lv5: 20, Lv10: 30, Lv20: 50
-// Corrida: 1km em Lv1, +1km a cada 5 levels → Lv5: 2km, Lv10: 3km...
-// Leitura: 10min em Lv1, +10min a cada 10 levels
-// Meditação: 5min em Lv1, +5min a cada 10 levels
 export function getDailyMissions(level) {
-    const reps    = 10 + Math.floor(level / 5) * 10;
-    const km      = Math.min(10, 1 + Math.floor((level - 1) / 5));
+    const reps = 10 + Math.floor(level / 5) * 10;
+    const km = Math.min(10, 1 + Math.floor((level - 1) / 5));
     const readMin = 10 + Math.floor((level - 1) / 10) * 10;
-    const medMin  = 5  + Math.floor((level - 1) / 10) * 5;
+    const medMin = 5 + Math.floor((level - 1) / 10) * 5;
     return [
-        { id: 'flexoes',      label: `${reps} Flexões`,          type: 'boolean', xp: 150, stats: { STR: 2 } },
-        { id: 'abdominais',   label: `${reps} Abdominais`,        type: 'boolean', xp: 120, stats: { STR: 1 } },
-        { id: 'agachamentos', label: `${reps} Agachamentos`,      type: 'boolean', xp: 120, stats: { STR: 1, AGI: 1 } },
-        { id: 'corrida',      label: `${km}km de Corrida`,        type: 'boolean', xp: 200, stats: { AGI: 2 } },
-        { id: 'agua',         label: "8 Copos d'Água",            type: 'counter', max: 8,  xp: 80,  stats: { VIT: 2 } },
-        { id: 'sono',         label: '7h+ de Sono',               type: 'boolean', xp: 100, stats: { VIT: 2 } },
-        { id: 'leitura',      label: `${readMin}min de Leitura`,  type: 'boolean', xp: 80,  stats: { INT: 2 } },
-        { id: 'meditacao',    label: `${medMin}min de Meditação`, type: 'boolean', xp: 60,  stats: { SEN: 2 } },
+        { id: 'flexoes', label: `${reps} Flexões`, type: 'boolean', xp: 150, stats: { STR: 2 } },
+        { id: 'abdominais', label: `${reps} Abdominais`, type: 'boolean', xp: 120, stats: { STR: 1 } },
+        { id: 'agachamentos', label: `${reps} Agachamentos`, type: 'boolean', xp: 120, stats: { STR: 1, AGI: 1 } },
+        { id: 'corrida', label: `${km}km de Corrida`, type: 'boolean', xp: 200, stats: { AGI: 2 } },
+        { id: 'agua', label: "8 Copos d'Água", type: 'counter', max: 8, xp: 80, stats: { VIT: 2 } },
+        { id: 'sono', label: '7h+ de Sono', type: 'boolean', xp: 100, stats: { VIT: 2 } },
+        { id: 'leitura', label: `${readMin}min de Leitura`, type: 'boolean', xp: 80, stats: { INT: 2 } },
+        { id: 'meditacao', label: `${medMin}min de Meditação`, type: 'boolean', xp: 60, stats: { SEN: 2 } },
     ];
 }
 
 export const BAD_HABITS = [
-    { id: 'dormi_tarde',  label: 'Dormi após meia-noite',     xp: 50, statKey: 'VIT', statLoss: 1 },
-    { id: 'pulei_treino', label: 'Pulei o treino',             xp: 80, statKey: 'STR', statLoss: 1 },
-    { id: 'sem_agua',     label: 'Não bebi água suficiente',   xp: 40, statKey: 'VIT', statLoss: 1 },
-    { id: 'junk_food',    label: 'Comi muito açúcar/junk',     xp: 30, statKey: 'VIT', statLoss: 1 },
-    { id: 'tela_noite',   label: 'Usei tela antes de dormir',  xp: 30, statKey: 'SEN', statLoss: 1 },
-    { id: 'improdutivo',  label: 'Fui improdutivo o dia todo', xp: 60, statKey: 'INT', statLoss: 1 },
+    { id: 'dormi_tarde', label: 'Dormi após meia-noite', xp: 50, statKey: 'VIT', statLoss: 1 },
+    { id: 'pulei_treino', label: 'Pulei o treino', xp: 80, statKey: 'STR', statLoss: 1 },
+    { id: 'sem_agua', label: 'Não bebi água suficiente', xp: 40, statKey: 'VIT', statLoss: 1 },
+    { id: 'junk_food', label: 'Comi muito açúcar/junk', xp: 30, statKey: 'VIT', statLoss: 1 },
+    { id: 'tela_noite', label: 'Usei tela antes de dormir', xp: 30, statKey: 'SEN', statLoss: 1 },
+    { id: 'improdutivo', label: 'Fui improdutivo o dia todo', xp: 60, statKey: 'INT', statLoss: 1 },
 ];
 
 function getTodayString() {
@@ -42,6 +38,7 @@ function getTodayString() {
 const INITIAL_MISSION_STATE = {
     completed: {},
     progress: {},
+    badHabitsReported: {}, // rastreia maus hábitos reportados hoje (com data)
     lastResetDate: null,
     xpGainedToday: 0,
 };
@@ -51,6 +48,8 @@ export function MissionProvider({ children }) {
     const missions = getDailyMissions(player.level);
     const [missionState, setMissionState] = useLocalStorage('orbis_missions', INITIAL_MISSION_STATE);
     const resetDoneRef = useRef(false);
+    // Captura o nível no momento do mount para o reset diário ser consistente
+    const levelAtMountRef = useRef(player.level);
 
     useEffect(() => {
         if (resetDoneRef.current) return;
@@ -59,8 +58,9 @@ export function MissionProvider({ children }) {
         const today = getTodayString();
 
         if (missionState.lastResetDate && missionState.lastResetDate !== today) {
-            // Apply -50 XP for each incomplete mission
-            missions.forEach(mission => {
+            // Usar as missões baseadas no nível no momento do mount (antes do reset)
+            const missionsAtMount = getDailyMissions(levelAtMountRef.current);
+            missionsAtMount.forEach(mission => {
                 const isCompleted = mission.type === 'counter'
                     ? (missionState.progress[mission.id] || 0) >= mission.max
                     : !!missionState.completed[mission.id];
@@ -72,13 +72,14 @@ export function MissionProvider({ children }) {
             setMissionState({
                 completed: {},
                 progress: {},
+                badHabitsReported: {},
                 lastResetDate: today,
                 xpGainedToday: 0,
             });
         } else if (!missionState.lastResetDate) {
-            setMissionState(prev => ({ ...prev, lastResetDate: today }));
+            setMissionState(prev => ({ ...prev, lastResetDate: today, badHabitsReported: prev.badHabitsReported || {} }));
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const toggleMission = useCallback((missionId) => {
@@ -110,12 +111,11 @@ export function MissionProvider({ children }) {
                 };
             });
         }
-    }, [missionState, gainXPAmount, applyPenalty, applyStatBonus]);
+    }, [missionState, gainXPAmount, applyPenalty, applyStatBonus, missions]);
 
     const updateWaterCount = useCallback((count) => {
         const mission = missions.find(m => m.id === 'agua');
         const clamped = Math.min(Math.max(0, count), mission.max);
-        const prevCount = missionState.progress['agua'] || 0;
         const wasCompleted = !!missionState.completed['agua'];
         const isNowCompleted = clamped >= mission.max;
 
@@ -149,13 +149,26 @@ export function MissionProvider({ children }) {
                 progress: { ...prev.progress, agua: clamped },
             }));
         }
-    }, [missionState, gainXPAmount, applyPenalty, applyStatBonus]);
+    }, [missionState, gainXPAmount, applyPenalty, applyStatBonus, missions]);
 
+    // Reportar um mau hábito com deduplicação: cada hábito só pode ser reportado uma vez por dia
     const reportBadHabit = useCallback((habitId) => {
         const habit = BAD_HABITS.find(h => h.id === habitId);
         if (!habit) return;
+
+        const today = getTodayString();
+        const alreadyReported = missionState.badHabitsReported?.[habitId] === today;
+        if (alreadyReported) return; // Já reportado hoje — ignorar
+
         applyPenalty(habit.xp, habit.statKey, habit.statLoss);
-    }, [applyPenalty]);
+        setMissionState(prev => ({
+            ...prev,
+            badHabitsReported: {
+                ...(prev.badHabitsReported || {}),
+                [habitId]: today,
+            },
+        }));
+    }, [applyPenalty, missionState.badHabitsReported]);
 
     const completedCount = missions.filter(m => {
         if (m.type === 'counter') return (missionState.progress[m.id] || 0) >= m.max;

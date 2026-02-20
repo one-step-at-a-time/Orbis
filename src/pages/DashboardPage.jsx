@@ -19,14 +19,20 @@ export function DashboardPage() {
     const todayStr = new Date().toISOString().split('T')[0];
     const mesAtual = new Date().toLocaleString('pt-BR', { month: 'long' }).replace(/^\w/, c => c.toUpperCase());
     const habitsToday = habits.filter(h => h.logs.some(l => l.data === todayStr)).length;
-    const habitRate = habits.length > 0 ? Math.round((habits.reduce((a, h) => a + h.logs.length, 0) / habits.reduce((a, h) => a + h.metaMensal, 0)) * 100) : 0;
+    const totalMeta = habits.reduce((a, h) => a + (h.metaMensal || 0), 0);
+    const totalLogs = habits.reduce((a, h) => a + h.logs.length, 0);
+    const habitRate = (habits.length > 0 && totalMeta > 0) ? Math.min(100, Math.round((totalLogs / totalMeta) * 100)) : 0;
 
     const projAtivos = projects.filter(p => p.status === "ativo").length;
     const projConcluidos = projects.filter(p => p.status === "concluido").length;
     const projPausados = projects.filter(p => p.status === "pausado").length;
 
-    const receitas = finances.filter(f => f.tipo === "receita").reduce((a, f) => a + f.valor, 0);
-    const despesas = finances.filter(f => f.tipo === "despesa").reduce((a, f) => a + f.valor, 0);
+    // Financeiro: filtra apenas o mês e ano atuais
+    const now = new Date();
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const financesThisMonth = finances.filter(f => f.data && f.data.startsWith(currentYearMonth));
+    const receitas = financesThisMonth.filter(f => f.tipo === "receita").reduce((a, f) => a + (f.valor || 0), 0);
+    const despesas = financesThisMonth.filter(f => f.tipo === "despesa").reduce((a, f) => a + (f.valor || 0), 0);
     const saldo = receitas - despesas;
 
     return (

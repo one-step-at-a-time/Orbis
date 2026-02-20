@@ -5,10 +5,10 @@ import { getRank } from '../utils/playerUtils';
 const PlayerContext = createContext(null);
 
 const TITLES = [
-    { level: 1,  title: "O Desperto" },
-    { level: 3,  title: "Caçador Iniciante" },
-    { level: 5,  title: "Sobrevivente das Trevas" },
-    { level: 8,  title: "Invocador de Sombras" },
+    { level: 1, title: "O Desperto" },
+    { level: 3, title: "Caçador Iniciante" },
+    { level: 5, title: "Sobrevivente das Trevas" },
+    { level: 8, title: "Invocador de Sombras" },
     { level: 10, title: "Arise" },
     { level: 15, title: "Soldado das Sombras" },
     { level: 20, title: "Comandante das Sombras" },
@@ -25,8 +25,7 @@ const XP_TABLE = {
     alta: 200,
 };
 
-
-function xpForNextLevel(level) {
+export function xpForNextLevel(level) {
     return level * 150;
 }
 
@@ -47,79 +46,69 @@ const INITIAL_PLAYER = {
     stats: { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 },
 };
 
+// Lógica central de progressão de XP — usada por gainXP e gainXPAmount
+function computeXpGain(prev, amount) {
+    let { level, xp, totalXp, titles, activeTitle, stats } = prev;
+    xp += amount;
+    totalXp += amount;
+
+    let newTitles = [];
+
+    while (xp >= xpForNextLevel(level)) {
+        xp -= xpForNextLevel(level);
+        const gained = getNewTitles(level, level + 1);
+        newTitles = [...newTitles, ...gained];
+        level += 1;
+    }
+
+    const allTitles = getTitlesEarned(level);
+    const updatedActiveTitle = newTitles.length > 0 ? newTitles[newTitles.length - 1] : activeTitle;
+
+    return {
+        next: {
+            level,
+            xp,
+            totalXp,
+            titles: allTitles,
+            activeTitle: updatedActiveTitle,
+            stats: stats || { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 },
+        },
+        levelsGained: level - prev.level,
+        newTitles,
+        amount,
+    };
+}
+
 export function PlayerProvider({ children }) {
     const [player, setPlayer] = useLocalStorage('orbis_player', INITIAL_PLAYER);
-    const [levelUpData, setLevelUpData] = useState(null); // { newLevel, newRank, newTitles }
+    const [levelUpData, setLevelUpData] = useState(null);
 
+    // gainXP aceita uma prioridade ('baixa'|'media'|'alta')
     const gainXP = useCallback((priority) => {
         const amount = XP_TABLE[priority] || XP_TABLE.media;
+        gainXPAmount(amount);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-        setPlayer(prev => {
-            let { level, xp, totalXp, titles, activeTitle, stats } = prev;
-            xp += amount;
-            totalXp += amount;
-
-            let newTitles = [];
-            let levelsGained = 0;
-
-            while (xp >= xpForNextLevel(level)) {
-                xp -= xpForNextLevel(level);
-                const gained = getNewTitles(level, level + 1);
-                newTitles = [...newTitles, ...gained];
-                level += 1;
-                levelsGained += 1;
-            }
-
-            const allTitles = getTitlesEarned(level);
-            const updatedActiveTitle = newTitles.length > 0 ? newTitles[newTitles.length - 1] : activeTitle;
-
-            if (levelsGained > 0) {
-                setTimeout(() => {
-                    setLevelUpData({
-                        newLevel: level,
-                        newRank: getRank(level),
-                        newTitles,
-                        xpGained: amount,
-                    });
-                }, 300);
-            }
-
-            return { level, xp, totalXp, titles: allTitles, activeTitle: updatedActiveTitle, stats: stats || { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 } };
-        });
-    }, [setPlayer]);
-
+    // gainXPAmount aceita um valor numérico direto
     const gainXPAmount = useCallback((amount) => {
         setPlayer(prev => {
-            let { level, xp, totalXp, titles, activeTitle, stats } = prev;
-            xp += amount;
-            totalXp += amount;
+            const result = computeXpGain(prev, amount);
 
-            let newTitles = [];
-            let levelsGained = 0;
-
-            while (xp >= xpForNextLevel(level)) {
-                xp -= xpForNextLevel(level);
-                const gained = getNewTitles(level, level + 1);
-                newTitles = [...newTitles, ...gained];
-                level += 1;
-                levelsGained += 1;
-            }
-
-            const allTitles = getTitlesEarned(level);
-            const updatedActiveTitle = newTitles.length > 0 ? newTitles[newTitles.length - 1] : activeTitle;
-
-            if (levelsGained > 0) {
-                setTimeout(() => {
+            // useState setter fora do updater: seguro pois é efeito derivado do mesmo ciclo
+            if (result.levelsGained > 0) {
+                // Agendar fora do updater para evitar side-effect dentro do setState
+                queueMicrotask(() => {
                     setLevelUpData({
-                        newLevel: level,
-                        newRank: getRank(level),
-                        newTitles,
-                        xpGained: amount,
+                        newLevel: result.next.level,
+                        newRank: getRank(result.next.level),
+                        newTitles: result.newTitles,
+                        xpGained: result.amount,
                     });
-                }, 300);
+                });
             }
 
-            return { level, xp, totalXp, titles: allTitles, activeTitle: updatedActiveTitle, stats: stats || { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0 } };
+            return result.next;
         });
     }, [setPlayer]);
 

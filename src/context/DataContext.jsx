@@ -6,10 +6,15 @@ import {
 
 const DataContext = createContext(null);
 
+// Gera um ID único usando a API nativa do navegador
+function newId() {
+    return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 export function DataProvider({ children }) {
     const [tasks, setTasks] = useLocalStorage('orbis_tasks', MOCK_TASKS);
 
-    // Auto-mark overdue tasks on mount and whenever tasks change
+    // Auto-marca tarefas atrasadas ao montar
     useEffect(() => {
         const today = new Date().toISOString().split('T')[0];
         setTasks(prev => prev.map(t => {
@@ -18,20 +23,25 @@ export function DataProvider({ children }) {
             }
             return t;
         }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
     const [habits, setHabits] = useLocalStorage('orbis_habits', MOCK_HABITS);
     const [projects, setProjects] = useLocalStorage('orbis_projects', MOCK_PROJECTS);
     const [reminders, setReminders] = useLocalStorage('orbis_reminders', MOCK_REMINDERS);
     const [finances, setFinances] = useLocalStorage('orbis_finances', MOCK_FINANCES);
 
-    const addTask = (task) => setTasks([...tasks, { ...task, id: Date.now().toString() }]);
-    const updateTask = (id, updates) => setTasks(tasks.map(t => t.id === id ? { ...t, ...updates } : t));
-    const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
+    // ── Tasks ──────────────────────────────────────────────────────────────
+    // Usar updater function (prev =>) para evitar closures stale
+    const addTask = (task) => setTasks(prev => [...prev, { ...task, id: newId() }]);
+    const updateTask = (id, updates) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
 
-    const addHabit = (habit) => setHabits([...habits, { ...habit, id: Date.now().toString(), logs: [] }]);
-    const deleteHabit = (id) => setHabits(habits.filter(h => h.id !== id));
+    // ── Habits ─────────────────────────────────────────────────────────────
+    const addHabit = (habit) => setHabits(prev => [...prev, { ...habit, id: newId(), logs: [] }]);
+    const deleteHabit = (id) => setHabits(prev => prev.filter(h => h.id !== id));
     const addHabitLog = (habitId, date) => {
-        setHabits(habits.map(h => {
+        setHabits(prev => prev.map(h => {
             if (h.id !== habitId) return h;
             const hasDate = h.logs.some(l => l.data === date);
             return {
@@ -41,15 +51,18 @@ export function DataProvider({ children }) {
         }));
     };
 
-    const addProject = (project) => setProjects([...projects, { ...project, id: Date.now().toString(), status: "ativo", totalTarefas: 0, tarefasConcluidas: 0 }]);
-    const updateProject = (id, updates) => setProjects(projects.map(p => p.id === id ? { ...p, ...updates } : p));
-    const deleteProject = (id) => setProjects(projects.filter(p => p.id !== id));
+    // ── Projects ───────────────────────────────────────────────────────────
+    const addProject = (project) => setProjects(prev => [...prev, { ...project, id: newId(), status: "ativo", totalTarefas: 0, tarefasConcluidas: 0 }]);
+    const updateProject = (id, updates) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    const deleteProject = (id) => setProjects(prev => prev.filter(p => p.id !== id));
 
-    const addReminder = (reminder) => setReminders([...reminders, { ...reminder, id: Date.now().toString() }]);
-    const deleteReminder = (id) => setReminders(reminders.filter(r => r.id !== id));
+    // ── Reminders ──────────────────────────────────────────────────────────
+    const addReminder = (reminder) => setReminders(prev => [...prev, { ...reminder, id: newId() }]);
+    const deleteReminder = (id) => setReminders(prev => prev.filter(r => r.id !== id));
 
-    const addFinance = (entry) => setFinances([...finances, { ...entry, id: Date.now().toString() }]);
-    const deleteFinance = (id) => setFinances(finances.filter(f => f.id !== id));
+    // ── Finances ───────────────────────────────────────────────────────────
+    const addFinance = (entry) => setFinances(prev => [...prev, { ...entry, id: newId() }]);
+    const deleteFinance = (id) => setFinances(prev => prev.filter(f => f.id !== id));
 
     return (
         <DataContext.Provider value={{

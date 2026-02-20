@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, Music, X, Play, Pause, RotateCcw, Volume2, ChevronDown } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const MODES = {
-  foco:  { label: 'Foco',        duration: 25 * 60, color: '#06b6d4' },
-  pausa: { label: 'Pausa',       duration: 5  * 60, color: '#22c55e' },
+  foco: { label: 'Foco', duration: 25 * 60, color: '#06b6d4' },
+  pausa: { label: 'Pausa', duration: 5 * 60, color: '#22c55e' },
   longa: { label: 'Pausa Longa', duration: 15 * 60, color: '#8b5cf6' },
 };
 
@@ -33,7 +34,7 @@ function playBeep() {
       osc.start(ctx.currentTime + delay);
       osc.stop(ctx.currentTime + delay + 0.25);
     });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function formatTime(seconds) {
@@ -52,7 +53,7 @@ export function FocoWidget() {
   const [mode, setMode] = useState('foco');
   const [timeLeft, setTimeLeft] = useState(MODES.foco.duration);
   const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState(0);
+  const [sessions, setSessions] = useLocalStorage('orbis_pomodoro_sessions', 0);
   const intervalRef = useRef(null);
   const modeRef = useRef(mode);
 

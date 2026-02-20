@@ -38,19 +38,19 @@ export function ChatPage() {
 
     const MODEL_OPTIONS = {
         gemini: [
-            { value: 'gemini-2.5-flash',     label: 'Gemini 2.5 Flash — Recomendado' },
-            { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro — Mais potente' },
-            { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash — Anterior' },
+            { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash — Recomendado' },
+            { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro — Mais potente' },
+            { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash — Anterior' },
         ],
         zhipu: [
-            { value: 'glm-4-plus',            label: 'GLM-4 Plus — Recomendado' },
-            { value: 'glm-4-flash',           label: 'GLM-4 Flash — Grátis / Rápido' },
-            { value: 'glm-4-long',            label: 'GLM-4 Long — Contexto longo' },
+            { value: 'glm-4-plus', label: 'GLM-4 Plus — Recomendado' },
+            { value: 'glm-4-flash', label: 'GLM-4 Flash — Grátis / Rápido' },
+            { value: 'glm-4-long', label: 'GLM-4 Long — Contexto longo' },
         ],
         siliconflow: [
-            { value: 'deepseek-ai/DeepSeek-V3',              label: 'DeepSeek V3 — Recomendado' },
-            { value: 'deepseek-ai/DeepSeek-R1',              label: 'DeepSeek R1 — Raciocínio' },
-            { value: 'Qwen/Qwen2.5-72B-Instruct',            label: 'Qwen 2.5 72B' },
+            { value: 'deepseek-ai/DeepSeek-V3', label: 'DeepSeek V3 — Recomendado' },
+            { value: 'deepseek-ai/DeepSeek-R1', label: 'DeepSeek R1 — Raciocínio' },
+            { value: 'Qwen/Qwen2.5-72B-Instruct', label: 'Qwen 2.5 72B' },
         ],
     };
 
@@ -193,7 +193,9 @@ export function ChatPage() {
         const msgText = input.trim();
         const newUserMsg = { id: Date.now().toString(), tipo: "usuario", mensagem: msgText, timestamp: new Date().toISOString() };
 
-        const newMessages = [...messages, newUserMsg];
+        // Limitar histórico a 100 mensagens para evitar overflow do localStorage
+        const MAX_HISTORY = 100;
+        const newMessages = [...messages, newUserMsg].slice(-MAX_HISTORY);
         setMessages(newMessages);
         setInput("");
 
@@ -206,7 +208,7 @@ export function ChatPage() {
                 tipo: "ia",
                 mensagem: aiResponseText,
                 timestamp: new Date().toISOString()
-            }]);
+            }].slice(-MAX_HISTORY));
             setTypingMsgId(newId);
             speak(aiResponseText);
         }
@@ -259,7 +261,7 @@ export function ChatPage() {
                 <div style={{ display: "flex", gap: 8 }}>
                     <button
                         className="btn-ghost"
-                        onClick={() => { if (window.confirm('Limpar histórico do chat?')) { setMessages([{ id: "w", tipo: "ia", mensagem: "[ SISTEMA ]: Conexão estabelecida, Caçador.\n\nNúcleo operacional ativo. Todos os subsistemas funcionando.\n\nCapacidades disponíveis:\n- Registrar missões, tarefas e projetos\n- Criar hábitos e lembretes\n- Gerenciar recursos financeiros\n- Consultar dados externos em tempo real\n\nAguardando instrução.", timestamp: new Date().toISOString() }]); }}}
+                        onClick={() => { if (window.confirm('Limpar histórico do chat?')) { setMessages([{ id: "w", tipo: "ia", mensagem: "[ SISTEMA ]: Conexão estabelecida, Caçador.\n\nNúcleo operacional ativo. Todos os subsistemas funcionando.\n\nCapacidades disponíveis:\n- Registrar missões, tarefas e projetos\n- Criar hábitos e lembretes\n- Gerenciar recursos financeiros\n- Consultar dados externos em tempo real\n\nAguardando instrução.", timestamp: new Date().toISOString() }]); } }}
                         title="Limpar conversa"
                     >
                         <Trash2 size={16} color="var(--text-dim)" />
@@ -432,8 +434,8 @@ export function ChatPage() {
                                             options={{ delay: 14, cursor: '▌', loop: false }}
                                             onInit={(tw) => {
                                                 tw.typeString(msg.mensagem.replace(/\n/g, '<br />'))
-                                                  .callFunction(() => setTypingMsgId(null))
-                                                  .start();
+                                                    .callFunction(() => setTypingMsgId(null))
+                                                    .start();
                                             }}
                                         />
                                     </div>
