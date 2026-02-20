@@ -34,7 +34,7 @@ export function ChatPage() {
     };
 
     // Config mode state
-    const [configTab, setConfigTab] = useState('ia'); // 'ia' or 'search'
+    const [configTab, setConfigTab] = useState('ia'); // 'ia', 'search' or 'voz'
 
     const MODEL_OPTIONS = {
         gemini: [
@@ -66,12 +66,14 @@ export function ChatPage() {
     const [isTtsEnabled, setIsTtsEnabled] = useState(false);
     const scrollRef = useRef(null);
     const recognitionRef = useRef(null);
+    const audioRef = useRef(null);
 
     // Limpa recursos de áudio ao desmontar
     useEffect(() => {
         return () => {
             recognitionRef.current?.abort();
             window.speechSynthesis?.cancel();
+            audioRef.current?.pause();
         };
     }, []);
 
@@ -121,15 +123,49 @@ export function ChatPage() {
         setIsListening(true);
     };
 
-    const speak = (text) => {
-        if (!isTtsEnabled || !window.speechSynthesis) return;
+    const cleanForSpeech = (text) => text
+        .replace(/\[ SISTEMA \]:/g, '')
+        .replace(/\[ ALERTA \]:/g, '')
+        .replace(/<br\s*\/?>/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const speak = async (text) => {
+        if (!isTtsEnabled) return;
+        const clean = cleanForSpeech(text);
+        if (!clean) return;
+
+        const elKey = readKey('orbis_elevenlabs_key');
+
+        if (elKey) {
+            try {
+                audioRef.current?.pause();
+                const voiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam — grave e autoritário
+                const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+                    method: 'POST',
+                    headers: { 'xi-api-key': elKey, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: clean,
+                        model_id: 'eleven_multilingual_v2',
+                        voice_settings: { stability: 0.55, similarity_boost: 0.75, style: 0.1, use_speaker_boost: true },
+                    }),
+                });
+                if (!res.ok) throw new Error('ElevenLabs error');
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audioRef.current = audio;
+                audio.play();
+                audio.onended = () => URL.revokeObjectURL(url);
+                return;
+            } catch (e) {
+                console.error('[TTS] ElevenLabs falhou, usando fallback:', e);
+            }
+        }
+
+        // Fallback: Web Speech API
         window.speechSynthesis.cancel();
-        const clean = text
-            .replace(/\[ SISTEMA \]:/g, '')
-            .replace(/\[ ALERTA \]:/g, '')
-            .replace(/<br\s*\/?>/g, ' ')
-            .replace(/\n/g, ' ')
-            .trim();
         const utterance = new SpeechSynthesisUtterance(clean);
         utterance.lang = 'pt-BR';
         utterance.rate = 0.92;
@@ -191,9 +227,12 @@ export function ChatPage() {
                     // Garantir que o provider também está gravado no localStorage
                     window.localStorage.setItem('orbis_ai_provider', JSON.stringify(storedProvider));
                     console.log(`[Orbis] Salvo: ${storageKey} + provider=${storedProvider}`);
-                } else {
+                } else if (configTab === 'search') {
                     window.localStorage.setItem('orbis_brave_key', JSON.stringify(key));
                     console.log("[Orbis] Chave Brave salva.");
+                } else {
+                    window.localStorage.setItem('orbis_elevenlabs_key', JSON.stringify(key));
+                    console.log("[Orbis] Chave ElevenLabs salva.");
                 }
             } catch (e) {
                 alert("Erro ao salvar: " + e.message);
@@ -254,6 +293,12 @@ export function ChatPage() {
                         >
                             Busca Web (Brave)
                         </button>
+                        <button
+                            onClick={() => setConfigTab('voz')}
+                            style={{ background: "none", border: "none", color: configTab === 'voz' ? "var(--primary)" : "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", borderBottom: configTab === 'voz' ? "2px solid var(--primary)" : "none" }}
+                        >
+                            Voz (ElevenLabs)
+                        </button>
                     </div>
 
                     {configTab === 'ia' ? (
@@ -291,11 +336,22 @@ export function ChatPage() {
                                         : "Insira sua API Key da SiliconFlow."}
                             </p>
                         </>
-                    ) : (
+                    ) : configTab === 'search' ? (
                         <>
                             <h4 style={{ fontWeight: 600, fontSize: 13, marginBottom: 12 }}>Configuração de Busca na Web</h4>
                             <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
                                 Insira sua chave da <strong>Brave Search API</strong> para permitir que The System pesquise informações reais na internet.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h4 style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Voz do Sistema — ElevenLabs</h4>
+                            <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+                                Insira sua <strong>API Key do ElevenLabs</strong> para ativar a voz realista do Sistema. Voz usada: <span style={{ color: "var(--primary)" }}>Adam</span> (grave, autoritária).
+                            </p>
+                            <p style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 16 }}>
+                                Conta gratuita inclui 10.000 caracteres/mês — suficiente para uso diário.
+                                {readKey('orbis_elevenlabs_key') && <span style={{ color: "#22c55e", marginLeft: 8 }}>✓ Chave detectada</span>}
                             </p>
                         </>
                     )}
@@ -305,7 +361,7 @@ export function ChatPage() {
                             type="password"
                             value={tempKey}
                             onChange={e => setTempKey(e.target.value)}
-                            placeholder={configTab === 'ia' ? "Chave da IA..." : "Chave da Brave Search..."}
+                            placeholder={configTab === 'ia' ? "Chave da IA..." : configTab === 'search' ? "Chave da Brave Search..." : "Chave do ElevenLabs..."}
                             style={{ flex: 1 }}
                         />
                         <button className="btn btn-primary" onClick={handleSaveKey}>Salvar</button>
@@ -340,8 +396,8 @@ export function ChatPage() {
 
                     {/* Painel de Diagnóstico de Chaves */}
                     <div style={{ display: "flex", gap: 6 }}>
-                        {['gemini', 'zhipu', 'siliconflow', 'brave'].map(k => {
-                            const isPresent = !!readKey(`orbis_${k === 'brave' ? 'brave' : k}_key`);
+                        {['gemini', 'zhipu', 'siliconflow', 'brave', 'elevenlabs'].map(k => {
+                            const isPresent = !!readKey(`orbis_${k}_key`);
                             const label = k[0].toUpperCase();
                             return (
                                 <div
