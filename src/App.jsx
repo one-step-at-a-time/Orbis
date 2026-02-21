@@ -12,6 +12,7 @@ import { LembretesPage } from './pages/LembretesPage';
 import { FinancasPage } from './pages/FinancasPage';
 import { AnalisesPage } from './pages/AnalisesPage';
 import { MissoesPage } from './pages/MissoesPage';
+import { GemeoDijitalPage } from './pages/GemeoDijitalPage';
 import { LoginPage } from './pages/LoginPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -69,6 +70,7 @@ export default function App() {
     lembretes: LembretesPage,
     financas: FinancasPage,
     analises: AnalisesPage,
+    gemeodigital: GemeoDijitalPage,
   };
   const PageComponent = pages[page] || DashboardPage;
 
