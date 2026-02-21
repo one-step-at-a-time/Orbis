@@ -214,38 +214,29 @@ export function ChatPage() {
         }
     };
 
-    const handleSaveKey = () => {
-        const key = tempKey.trim();
+    const handleSaveKey = (specificKey, category) => {
+        const key = specificKey || tempKey.trim();
         if (key.length > 5) {
             try {
-                if (configTab === 'ia') {
-                    // IMPORTANTE: salvar TANTO a chave quanto o provider selecionado
+                if (category === 'ia') {
                     const storageKey = storedProvider === 'gemini'
                         ? 'orbis_gemini_key'
                         : storedProvider === 'zhipu'
                             ? 'orbis_zhipu_key'
                             : 'orbis_siliconflow_key';
                     window.localStorage.setItem(storageKey, JSON.stringify(key));
-                    // Garantir que o provider também está gravado no localStorage
                     window.localStorage.setItem('orbis_ai_provider', JSON.stringify(storedProvider));
-                    console.log(`[Orbis] Salvo: ${storageKey} + provider=${storedProvider}`);
-                } else if (configTab === 'search') {
+                } else if (category === 'search') {
                     window.localStorage.setItem('orbis_brave_key', JSON.stringify(key));
-                    console.log("[Orbis] Chave Brave salva.");
-                } else {
+                } else if (category === 'voz') {
                     window.localStorage.setItem('orbis_elevenlabs_key', JSON.stringify(key));
-                    console.log("[Orbis] Chave ElevenLabs salva.");
                 }
             } catch (e) {
                 alert("Erro ao salvar: " + e.message);
                 return;
             }
-
             setTempKey("");
-            // Recarregar para que tudo leia os valores atualizados
             window.location.reload();
-        } else {
-            alert("Por favor, insira uma chave válida (mínimo 6 caracteres).");
         }
     };
 
@@ -278,27 +269,124 @@ export function ChatPage() {
             </div>
 
             {showKeyInput && (
-                <div className="card animate-slide-up" style={{ padding: 20, border: "1px solid var(--primary)", background: "rgba(59, 89, 255, 0.04)", marginBottom: 20 }}>
-                    <div style={{ display: "flex", gap: 16, borderBottom: "1px solid var(--border)", marginBottom: 16, paddingBottom: 8 }}>
-                        {['ia', 'search'].map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setConfigTab(tab)}
-                                style={{ background: "none", border: "none", color: configTab === tab ? "var(--primary)" : "var(--text-muted)", fontWeight: 600, fontSize: 13, cursor: "pointer", borderBottom: configTab === tab ? "2px solid var(--primary)" : "none" }}
-                            >
-                                {tab.toUpperCase()} CORE
-                            </button>
-                        ))}
+                <div className="card animate-hud-boot" style={{
+                    padding: 24,
+                    border: "1px solid var(--border-mid)",
+                    background: "rgba(11, 11, 26, 0.95)",
+                    marginBottom: 20,
+                    backdropFilter: "blur(12px)",
+                    boxShadow: "var(--glow-primary)",
+                    borderRadius: 16
+                }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                        <div style={{ display: "flex", gap: 16 }}>
+                            {['ia', 'search', 'voz'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setConfigTab(tab)}
+                                    style={{
+                                        background: configTab === tab ? "rgba(59, 89, 255, 0.1)" : "none",
+                                        border: "none",
+                                        padding: "8px 16px",
+                                        borderRadius: 8,
+                                        color: configTab === tab ? "var(--primary)" : "var(--text-dim)",
+                                        fontWeight: 700,
+                                        fontSize: 12,
+                                        cursor: "pointer",
+                                        letterSpacing: "0.1em",
+                                        transition: "all 0.2s",
+                                        borderBottom: configTab === tab ? "2px solid var(--primary)" : "none"
+                                    }}
+                                >
+                                    {tab.toUpperCase()} CORE
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={() => setShowKeyInput(false)} className="btn-ghost" style={{ opacity: 0.5 }}><X size={16} /></button>
                     </div>
-                    <div style={{ display: "flex", gap: 10 }}>
-                        <input
-                            type="password"
-                            value={tempKey}
-                            onChange={e => setTempKey(e.target.value)}
-                            placeholder="Neural Key Index..."
-                            style={{ flex: 1 }}
-                        />
-                        <button className="btn btn-primary" onClick={handleSaveKey}>SYNC</button>
+
+                    <div className="animate-fade-in" key={configTab}>
+                        {configTab === 'ia' && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ display: "flex", gap: 12 }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", display: "block", marginBottom: 6 }}>PROVIDER</label>
+                                        <select
+                                            value={storedProvider}
+                                            onChange={(e) => setStoredProvider(e.target.value)}
+                                            style={{ width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-low)", color: "#fff", padding: "10px", borderRadius: 8, outline: "none" }}
+                                        >
+                                            <option value="gemini">Google Gemini</option>
+                                            <option value="siliconflow">SiliconFlow (DeepSeek)</option>
+                                            <option value="zhipu">Zhipu AI (GLM)</option>
+                                        </select>
+                                    </div>
+                                    <div style={{ flex: 1.5 }}>
+                                        <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", display: "block", marginBottom: 6 }}>MODEL</label>
+                                        <select
+                                            value={storedModel}
+                                            onChange={(e) => setStoredModel(e.target.value)}
+                                            style={{ width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-low)", color: "#fff", padding: "10px", borderRadius: 8, outline: "none" }}
+                                        >
+                                            <option value="">Default (Auto)</option>
+                                            {MODEL_OPTIONS[storedProvider]?.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <input
+                                        type="password"
+                                        value={tempKey}
+                                        onChange={e => setTempKey(e.target.value)}
+                                        placeholder={`Enter ${storedProvider.toUpperCase()} Neural Key...`}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'ia')}>SYNC</button>
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
+                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: hasKey ? "var(--success)" : "var(--danger)" }} />
+                                    {hasKey ? `Connected to ${storedProvider.toUpperCase()}` : "No Neural Key Detected"}
+                                </div>
+                            </div>
+                        )}
+
+                        {configTab === 'search' && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <input
+                                        type="password"
+                                        value={tempKey}
+                                        onChange={e => setTempKey(e.target.value)}
+                                        placeholder="Enter Brave Search Key..."
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'search')}>SYNC</button>
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                                    Allows THE SYSTEM to access real-time web data via Brave Search API.
+                                </div>
+                            </div>
+                        )}
+
+                        {configTab === 'voz' && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div style={{ display: "flex", gap: 10 }}>
+                                    <input
+                                        type="password"
+                                        value={tempKey}
+                                        onChange={e => setTempKey(e.target.value)}
+                                        placeholder="Enter ElevenLabs Voice Key..."
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'voz')}>SYNC</button>
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                                    Enables high-fidelity neural voice synthesis.
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -354,9 +442,14 @@ export function ChatPage() {
                     )}
                 </div>
 
-                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "center" }}>
-                    <button className="btn-ghost" style={{ padding: 8, color: "rgba(255,255,255,0.7)" }} onClick={() => setShowKeyInput(!showKeyInput)}>
-                        <span style={{ fontSize: 24, fontWeight: 300 }}>+</span>
+                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "center", border: showKeyInput ? "1px solid var(--primary)" : "1px solid transparent", transition: "all 0.3s" }}>
+                    <button
+                        className="btn-ghost"
+                        style={{ padding: 8, color: showKeyInput ? "var(--primary)" : "rgba(255,255,255,0.7)" }}
+                        onClick={() => setShowKeyInput(!showKeyInput)}
+                        title="System Control Panel"
+                    >
+                        <Bot size={22} className={showKeyInput ? "animate-pulse" : ""} />
                     </button>
                     <input
                         type="text"
