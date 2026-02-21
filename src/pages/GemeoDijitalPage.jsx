@@ -469,17 +469,19 @@ export function GemeoDijitalPage() {
         cursor: cursorStyle,
       }}
     >
-      {/* ── Canvas 3D (camada de fundo) ─────────────────────────── */}
-      <DigitalTwinScene
-        activeLayer={activeLayer}
-        hoveredGroup={hoveredGroup}
-        onBodyClick={handleBodyClick}
-        onHoverChange={handleHoverChange}
-      />
+      {/* ── Canvas 3D (z:0 — fundo) ──────────────────────────────── */}
+      <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 0 }}>
+        <DigitalTwinScene
+          activeLayer={activeLayer}
+          hoveredGroup={hoveredGroup}
+          onBodyClick={handleBodyClick}
+          onHoverChange={handleHoverChange}
+        />
+      </div>
 
-      {/* ── UI Overlay (camada sobre o canvas) ─────────────────── */}
+      {/* ── UI Overlay (z:1 — sobre o canvas) ────────────────────── */}
       <div
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 1, pointerEvents: 'none' }}
       >
         {/* HEADER — Filtros de Camada */}
         <div

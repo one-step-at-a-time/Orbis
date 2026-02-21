@@ -32,7 +32,7 @@ export function DigitalTwinScene({
     <Canvas
       camera={{ position: [0, 0.5, 3.2], fov: 50 }}
       gl={{ antialias: true, alpha: true }}
-      style={{ position: 'absolute', inset: 0 }}
+      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' }}
     >
       <Suspense fallback={<SceneFallback />}>
         {/* Iluminação ambiente suave */}
