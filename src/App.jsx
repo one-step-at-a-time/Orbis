@@ -18,6 +18,7 @@ import { SearchOverlay } from './components/SearchOverlay';
 import { NotificationTray } from './components/NotificationTray';
 import { LevelUpModal } from './components/LevelUpModal';
 import { FocoWidget } from './components/FocoWidget';
+import { BackgroundBeams, Spotlight, ScanlineOverlay } from './components/AceternityUI';
 
 export default function App() {
   const { user, login, logout } = useAppAuth();
@@ -33,7 +34,7 @@ export default function App() {
         const profile = JSON.parse(raw);
         if (profile?.nome) login(profile);
       }
-    } catch {}
+    } catch { }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -72,7 +73,9 @@ export default function App() {
   const PageComponent = pages[page] || DashboardPage;
 
   return (
-    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative" }}>
+    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative", background: "var(--bg)" }}>
+      {/* Background premium — raios de luz animados */}
+      <BackgroundBeams className="z-0 opacity-60" />
       {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -108,15 +111,16 @@ export default function App() {
 
       {/* Main Content */}
       <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+        <Spotlight className="z-0" fill="rgba(0,217,255,0.07)" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
-        <main style={{ flex: 1, padding: 24, maxWidth: 1200 }}>
+        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, x: -8, filter: "blur(4px)" }}
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, x: 8, filter: "blur(2px)" }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
             >
               <PageComponent />
             </motion.div>
@@ -131,6 +135,7 @@ export default function App() {
       <NotificationTray />
       <LevelUpModal />
       <FocoWidget />
+      <ScanlineOverlay />
     </div>
   );
 }

@@ -1,41 +1,76 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
-export function PageHeader({ title, subtitle }) {
+export function PageHeader({ title, subtitle, moduleCode }) {
+    const [scanned, setScanned] = useState(false);
+    useEffect(() => { setScanned(false); const t = setTimeout(() => setScanned(true), 50); return () => clearTimeout(t); }, [title]);
+
     return (
-        <div style={{ marginBottom: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="scan-trigger"
+            style={{ marginBottom: 12, position: "relative" }}
+        >
+            {/* Module identifier */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                {moduleCode && (
+                    <span style={{
+                        fontSize: 9, fontFamily: "var(--font-system)", letterSpacing: "0.2em",
+                        color: "var(--text-dim)", padding: "2px 8px",
+                        border: "1px solid rgba(0,217,255,0.15)", borderRadius: 3,
+                    }}>
+                        {moduleCode}
+                    </span>
+                )}
+
+                {/* Live indicator */}
                 <span style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#06b6d4',
-                    boxShadow: '0 0 8px rgba(6,182,212,0.8)',
-                    animation: 'system-pulse 2s ease-in-out infinite',
-                    flexShrink: 0,
+                    width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                    background: "var(--primary)",
+                    boxShadow: "0 0 12px rgba(0,217,255,1), 0 0 24px rgba(0,217,255,0.4)",
+                    animation: "system-pulse 2s ease-in-out infinite",
                 }} />
+
                 <h1 style={{
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "var(--font-system)",
                     fontSize: 22,
                     fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: '#06b6d4',
-                    textShadow: '0 0 20px rgba(6,182,212,0.45)',
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "var(--primary)",
+                    textShadow: "0 0 28px rgba(0,217,255,0.65), 0 0 56px rgba(0,217,255,0.2)",
                 }}>
                     [ {title} ]
                 </h1>
             </div>
+
+            {/* Subtitle */}
             {subtitle && (
                 <p style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 11,
-                    letterSpacing: '0.08em',
-                    color: 'var(--text-dim)',
-                    paddingLeft: 18,
+                    fontFamily: "var(--font-system)",
+                    fontSize: 10,
+                    letterSpacing: "0.12em",
+                    color: "var(--text-dim)",
+                    paddingLeft: moduleCode ? 72 : 24,
+                    textTransform: "uppercase",
                 }}>
-                    {subtitle}
+                    ▸ {subtitle}
                 </p>
             )}
-        </div>
+
+            {/* Energy line */}
+            <motion.div
+                initial={{ scaleX: 0, opacity: 0 }}
+                animate={{ scaleX: 1, opacity: 1 }}
+                transition={{ duration: 0.7, ease: "easeOut", delay: 0.15 }}
+                style={{
+                    height: 1, marginTop: 14,
+                    background: "linear-gradient(90deg, var(--primary), rgba(124,58,237,0.5), transparent)",
+                    transformOrigin: "left",
+                }}
+            />
+        </motion.div>
     );
 }

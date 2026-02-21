@@ -381,8 +381,8 @@ export function ChatPage() {
                 </div>
             )}
 
-            <div className="card" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 220px)", overflow: "hidden" }}>
-                <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(17,24,39,0.4)" }}>
+            <div className="card" style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 200px)", overflow: "hidden", maxWidth: 840, margin: "0 auto" }}>
+                <div style={{ padding: "14px 20px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.03)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 8, height: 8, borderRadius: "50%", background: hasKey ? "#22c55e" : "#f59e0b" }} className={hasKey ? "pulse-ring" : ""} />
                         <span style={{ fontWeight: 600, fontSize: 13, fontFamily: "'JetBrains Mono', monospace", color: "#06b6d4" }}>
@@ -424,12 +424,12 @@ export function ChatPage() {
                 <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
                     {messages.map(msg => (
                         <div key={msg.id} style={{ display: "flex", gap: 10, flexDirection: msg.tipo === "usuario" ? "row-reverse" : "row" }} className="animate-slide-up">
-                            <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(6,182,212,0.15)" : "linear-gradient(135deg, #06b6d4, #0891b2)" }}>
+                            <div style={{ width: 38, height: 38, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(0,217,255,0.15)" : "linear-gradient(135deg, #00d9ff, #0099cc)" }}>
                                 {msg.tipo === "usuario" ? <User size={14} color="var(--primary)" /> : <Bot size={14} color="white" />}
                             </div>
-                            <div className={msg.tipo === "usuario" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ maxWidth: "75%", padding: "12px 16px" }}>
+                            <div className={msg.tipo === "usuario" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ maxWidth: "82%", padding: "16px 22px", fontSize: 15 }}>
                                 {msg.tipo === "ia" && msg.id === typingMsgId ? (
-                                    <div style={{ fontSize: 14, lineHeight: 1.5 }}>
+                                    <div style={{ fontSize: 16, lineHeight: 1.7 }}>
                                         <Typewriter
                                             options={{ delay: 14, cursor: '▌', loop: false }}
                                             onInit={(tw) => {
@@ -464,7 +464,7 @@ export function ChatPage() {
                     )}
                 </div>
 
-                <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "rgba(17,24,39,0.4)", display: "flex", gap: 10 }}>
+                <div style={{ padding: 16, borderTop: "1px solid var(--border)", background: "rgba(255,255,255,0.03)", display: "flex", gap: 10 }}>
                     <div style={{ flex: 1, position: "relative" }}>
                         <input
                             type="text"
