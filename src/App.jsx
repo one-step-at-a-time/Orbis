@@ -75,9 +75,13 @@ export default function App() {
   const PageComponent = pages[page] || DashboardPage;
 
   return (
-    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative", background: "var(--bg)" }}>
+    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative", background: "#000000" }}>
+      {/* Tactical grid background */}
+      <div className="tactical-grid-bg" />
+      {/* Floating particles — cyan glow dots */}
+      <div className="tactical-particles" />
       {/* Background premium — raios de luz animados */}
-      <BackgroundBeams className="z-0 opacity-60" />
+      <BackgroundBeams className="z-0 opacity-50" />
       {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -113,7 +117,9 @@ export default function App() {
 
       {/* Main Content */}
       <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <Spotlight className="z-0" fill="var(--primary-glow)" />
+        <Spotlight className="z-0" fill="rgba(0, 240, 255, 0.06)" />
+        {/* Holographic scanner line */}
+        <div className="holographic-scanner" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
         <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto" }}>
           <AnimatePresence mode="wait">

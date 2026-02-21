@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { cn } from "../utils/formatters";
 
 /* ─── BackgroundBeams ──────────────────────────────────
-   Raios SVG animados de energia no fundo das páginas   */
+   Raios SVG animados de energia — Utopia Cyber-Tática  */
 export function BackgroundBeams({ className }) {
     const paths = [
         "M-380 -189C-380 -189 -312 216 152 343C616 470 684 875 684 875",
@@ -21,18 +21,18 @@ export function BackgroundBeams({ className }) {
                     {paths.map((_, i) => (
                         <linearGradient key={i} id={`sn-beam-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stopColor="transparent" />
-                            <stop offset="35%" stopColor={i % 2 === 0 ? "rgba(0,217,255,0.5)" : "rgba(124,58,237,0.35)"} />
+                            <stop offset="35%" stopColor={i % 2 === 0 ? "rgba(0,240,255,0.4)" : "rgba(0,180,220,0.25)"} />
                             <stop offset="100%" stopColor="transparent" />
                         </linearGradient>
                     ))}
                     <radialGradient id="sn-center" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="rgba(59, 89, 255, 0.05)" />
+                        <stop offset="0%" stopColor="rgba(0, 240, 255, 0.04)" />
                         <stop offset="100%" stopColor="transparent" />
                     </radialGradient>
                 </defs>
                 {paths.map((path, i) => (
                     <path key={i} d={path} stroke={`url(#sn-beam-${i})`}
-                        strokeWidth={i % 2 === 0 ? "1.2" : "0.7"}
+                        strokeWidth={i % 2 === 0 ? "1.0" : "0.6"}
                         style={{ animation: `beam-anim ${4.5 + i * 0.6}s ease-in-out infinite alternate`, animationDelay: `${i * 0.3}s` }}
                     />
                 ))}
@@ -44,7 +44,7 @@ export function BackgroundBeams({ className }) {
 
 /* ─── Spotlight ────────────────────────────────────────
    Holofote de energia que segue o cursor no elemento pai */
-export function Spotlight({ className, fill = "rgba(59, 89, 255, 0.08)" }) {
+export function Spotlight({ className, fill = "rgba(0, 240, 255, 0.07)" }) {
     const spotRef = useRef(null);
     useEffect(() => {
         const spot = spotRef.current;
@@ -68,7 +68,7 @@ export function Spotlight({ className, fill = "rgba(59, 89, 255, 0.08)" }) {
 
 /* ─── CornerBrackets ───────────────────────────────────
    Decorações de cantos estilo HUD técnico              */
-export function CornerBrackets({ size = 10, color = "rgba(59, 89, 255, 0.5)", animated = false }) {
+export function CornerBrackets({ size = 10, color = "rgba(0, 240, 255, 0.55)", animated = false }) {
     const style = (corner) => {
         const base = {
             position: "absolute", width: size, height: size,
@@ -123,14 +123,14 @@ export function HUDPanel({ children, className, style, tag, animated = false, ..
    Borda cônica girando — para elementos de destaque    */
 export function MovingBorder({ children, className, containerStyle, duration = 3500 }) {
     return (
-        <div style={{ position: "relative", borderRadius: 11, padding: 1, overflow: "hidden", ...containerStyle }}>
+        <div style={{ position: "relative", borderRadius: 0, padding: 1, overflow: "hidden", clipPath: "polygon(8px 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%, 0% 8px)", ...containerStyle }}>
             <div style={{
                 position: "absolute", inset: "-50%", aspectRatio: "1",
-                background: "conic-gradient(from 0deg, transparent 0%, var(--primary) 20%, var(--accent) 50%, transparent 70%)",
+                background: "conic-gradient(from 0deg, transparent 0%, #00F0FF 20%, #00A8B5 50%, transparent 70%)",
                 animation: `border-flow ${duration}ms linear infinite`,
-                opacity: 0.7,
+                opacity: 0.65,
             }} />
-            <div className={cn(className)} style={{ position: "relative", zIndex: 1, borderRadius: 10 }}>
+            <div className={cn(className)} style={{ position: "relative", zIndex: 1, borderRadius: 0 }}>
                 {children}
             </div>
         </div>
@@ -141,10 +141,10 @@ export function MovingBorder({ children, className, containerStyle, duration = 3
    Botão com energia e feedback visual de sistema       */
 export function GlowButton({ children, className, onClick, type = "button", variant = "primary" }) {
     const v = {
-        primary: { bg: "linear-gradient(135deg, var(--primary), var(--accent))", shadow: "var(--primary-glow)", text: "white" },
-        purple: { bg: "linear-gradient(135deg, #7c3aed, #6d28d9)", shadow: "rgba(124,58,237,0.4)", text: "white" },
-        gold: { bg: "linear-gradient(135deg, #f59e0b, #d97706)", shadow: "rgba(245,158,11,0.4)", text: "#030508" },
-        ghost: { bg: "rgba(59,89,255,0.08)", shadow: "rgba(59,89,255,0.1)", text: "var(--primary)" },
+        primary: { bg: "linear-gradient(135deg, #00F0FF, #00A8B5)", shadow: "rgba(0,240,255,0.45)", text: "#000000" },
+        purple: { bg: "linear-gradient(135deg, #00C8D8, #008899)", shadow: "rgba(0,200,216,0.4)", text: "#000000" },
+        gold: { bg: "linear-gradient(135deg, #00F0FF, #00C0CC)", shadow: "rgba(0,240,255,0.4)", text: "#000000" },
+        ghost: { bg: "rgba(0,240,255,0.06)", shadow: "rgba(0,240,255,0.12)", text: "var(--primary)" },
     }[variant] || {};
 
     return (
@@ -152,13 +152,15 @@ export function GlowButton({ children, className, onClick, type = "button", vari
             className={cn(className)}
             style={{
                 display: "inline-flex", alignItems: "center", justifyContent: "center",
-                gap: 8, padding: "10px 22px", borderRadius: 8, border: "none",
-                fontFamily: "var(--font-interface)", fontWeight: 700, fontSize: 14,
-                letterSpacing: "0.03em", cursor: "pointer",
+                gap: 8, padding: "10px 22px", borderRadius: 0,
+                clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
+                border: "none",
+                fontFamily: "var(--font-interface)", fontWeight: 700, fontSize: 12,
+                letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer",
                 background: v.bg, color: v.text, boxShadow: `0 4px 20px ${v.shadow}`,
                 transition: "all 0.18s ease",
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 30px ${v.shadow.replace("0.4", "0.65")}`; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 8px 30px ${v.shadow}, 0 0 20px ${v.shadow}`; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = `0 4px 20px ${v.shadow}`; }}
             onMouseDown={e => { e.currentTarget.style.transform = "translateY(0) scale(0.98)"; }}
         >
@@ -168,13 +170,13 @@ export function GlowButton({ children, className, onClick, type = "button", vari
 }
 
 /* ─── ScanlineOverlay ──────────────────────────────────
-   Scanlines sutis de CRT — dão sensação de terminal   */
+   Scanlines CRT sutis — sensação de terminal holográfico */
 export function ScanlineOverlay() {
     return (
         <div style={{
             position: "fixed", inset: 0, pointerEvents: "none",
             zIndex: 9997, mixBlendMode: "overlay",
-            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(59, 89, 255, 0.01) 2px, rgba(59, 89, 255, 0.01) 4px)",
+            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.012) 2px, rgba(0, 240, 255, 0.012) 4px)",
         }} />
     );
 }
@@ -199,20 +201,20 @@ export function TypewriterText({ text, delay = 0, speed = 60, className, style }
         <span className={cn(className)} style={style}>
             {displayed}
             {displayed.length < text.length && (
-                <span style={{ borderRight: "2px solid var(--primary)", marginLeft: 1, animation: "system-pulse 0.7s ease-in-out infinite" }} />
+                <span style={{ borderRight: "2px solid #00F0FF", marginLeft: 1, animation: "system-pulse 0.7s ease-in-out infinite", boxShadow: "0 0 6px rgba(0,240,255,0.8)" }} />
             )}
         </span>
     );
 }
 
 /* ─── ShimmerCard ──────────────────────────────────────
-   Card com borda shimmer energética                   */
+   Card com borda shimmer energética — Ciano Cirúrgico  */
 export function ShimmerCard({ children, className, style, ...props }) {
     return (
-        <div className={cn(className)} style={{ position: "relative", borderRadius: 10, overflow: "hidden", ...style }} {...props}>
+        <div className={cn(className)} style={{ position: "relative", borderRadius: 0, overflow: "hidden", clipPath: "polygon(10px 0%, 100% 0%, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0% 100%, 0% 10px)", ...style }} {...props}>
             <div style={{
-                position: "absolute", inset: 0, borderRadius: "inherit",
-                background: "linear-gradient(135deg, rgba(59, 89, 255, 0.22), rgba(124, 58, 237, 0.15), rgba(59, 89, 255, 0.22))",
+                position: "absolute", inset: 0,
+                background: "linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 180, 200, 0.1), rgba(0, 240, 255, 0.2))",
                 backgroundSize: "200% 200%", animation: "shimmer 4s linear infinite",
                 padding: 1, WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                 WebkitMaskComposite: "xor", maskComposite: "exclude",
