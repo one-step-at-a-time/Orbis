@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Orbis/',
+  base: process.env.GITHUB_ACTIONS ? '/Orbis/' : '/',
   plugins: [react()],
   server: {
     proxy: {
