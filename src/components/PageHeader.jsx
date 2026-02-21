@@ -19,7 +19,7 @@ export function PageHeader({ title, subtitle, moduleCode }) {
                     <span style={{
                         fontSize: 9, fontFamily: "var(--font-system)", letterSpacing: "0.2em",
                         color: "var(--text-dim)", padding: "2px 8px",
-                        border: "1px solid rgba(0,217,255,0.15)", borderRadius: 3,
+                        border: "1px solid var(--border-low)", borderRadius: 3,
                     }}>
                         {moduleCode}
                     </span>
@@ -29,7 +29,7 @@ export function PageHeader({ title, subtitle, moduleCode }) {
                 <span style={{
                     width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
                     background: "var(--primary)",
-                    boxShadow: "0 0 12px rgba(0,217,255,1), 0 0 24px rgba(0,217,255,0.4)",
+                    boxShadow: "var(--glow-primary)",
                     animation: "system-pulse 2s ease-in-out infinite",
                 }} />
 
@@ -40,7 +40,7 @@ export function PageHeader({ title, subtitle, moduleCode }) {
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
                     color: "var(--primary)",
-                    textShadow: "0 0 28px rgba(0,217,255,0.65), 0 0 56px rgba(0,217,255,0.2)",
+                    textShadow: "var(--glow-primary)",
                 }}>
                     [ {title} ]
                 </h1>

@@ -40,10 +40,10 @@ export function DashboardPage() {
             <PageHeader title="STATUS DO SISTEMA" subtitle="PANORAMA COMPLETO DO SEU PROGRESSO" />
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
-                <StatsCard title="Concluídos Hoje" value={habitsToday} subtitle={`de ${habits.length} hábitos`} icon={CheckCircle2} iconColor="#22c55e" bgColor="rgba(34,197,94,0.1)" />
-                <StatsCard title="Pendentes" value={pending} subtitle="tarefas/lembretes" icon={Clock} iconColor="#3b82f6" bgColor="rgba(59,130,246,0.1)" />
-                <StatsCard title="Atrasados" value={overdue} subtitle="requerem atenção" icon={AlertTriangle} iconColor="#ef4444" bgColor="rgba(239,68,68,0.1)" />
-                <StatsCard title="Próximos" value={reminders.length} subtitle="nos próximos dias" icon={Calendar} iconColor="#8b5cf6" bgColor="rgba(139,92,246,0.1)" />
+                <StatsCard title="Concluídos Hoje" value={habitsToday} subtitle={`de ${habits.length} hábitos`} icon={CheckCircle2} iconColor="var(--success)" bgColor="rgba(0,255,157,0.1)" />
+                <StatsCard title="Pendentes" value={pending} subtitle="tarefas/lembretes" icon={Clock} iconColor="var(--primary)" bgColor="rgba(59,89,255,0.1)" />
+                <StatsCard title="Atrasados" value={overdue} subtitle="requerem atenção" icon={AlertTriangle} iconColor="var(--danger)" bgColor="rgba(255,61,113,0.1)" />
+                <StatsCard title="Próximos" value={reminders.length} subtitle="nos próximos dias" icon={Calendar} iconColor="var(--accent)" bgColor="rgba(124,58,237,0.1)" />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
@@ -53,9 +53,9 @@ export function DashboardPage() {
                         <span style={{ fontWeight: 600 }}>Tarefas — {mesAtual}</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16, textAlign: "center" }}>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#22c55e" }}>{completed}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídas</p></div>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#3b82f6" }}>{pending}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Pendentes</p></div>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#ef4444" }}>{overdue}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Atrasadas</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--success)" }}>{completed}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídas</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--primary)" }}>{pending}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Pendentes</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--danger)" }}>{overdue}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Atrasadas</p></div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Taxa de conclusão</span>
@@ -70,9 +70,9 @@ export function DashboardPage() {
                         <span style={{ fontWeight: 600 }}>Projetos — {mesAtual}</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16, textAlign: "center" }}>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#22c55e" }}>{projConcluidos}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídos</p></div>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#3b82f6" }}>{projAtivos}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Ativos</p></div>
-                        <div><p className="stat-number" style={{ fontSize: 24, color: "#f59e0b" }}>{projPausados}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Pausados</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--success)" }}>{projConcluidos}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Concluídos</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--primary)" }}>{projAtivos}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Ativos</p></div>
+                        <div><p className="stat-number" style={{ fontSize: 24, color: "var(--warning)" }}>{projPausados}</p><p style={{ fontSize: 11, color: "var(--text-muted)" }}>Pausados</p></div>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Progresso geral</span>

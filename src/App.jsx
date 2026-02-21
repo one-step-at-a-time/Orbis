@@ -111,7 +111,7 @@ export default function App() {
 
       {/* Main Content */}
       <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <Spotlight className="z-0" fill="rgba(0,217,255,0.07)" />
+        <Spotlight className="z-0" fill="var(--primary-glow)" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
         <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto" }}>
           <AnimatePresence mode="wait">

@@ -234,11 +234,11 @@ export function Sidebar({ page, setPage, onClose }) {
     return (
         <div style={{
             display: "flex", flexDirection: "column", height: "100%", width: 240,
-            background: "linear-gradient(180deg, #080e1e 0%, #060a14 100%)",
-            borderRight: "1px solid rgba(0,217,255,0.09)",
+            background: "linear-gradient(180deg, #0b0b1a 0%, #050508 100%)",
+            borderRight: "1px solid rgba(59, 89, 255, 0.12)",
             position: "relative", overflow: "hidden",
         }}>
-            <Spotlight fill="rgba(0,217,255,0.08)" />
+            <Spotlight fill="rgba(59, 89, 255, 0.08)" />
 
             {/* Top energy line */}
             <div style={{
@@ -265,11 +265,11 @@ export function Sidebar({ page, setPage, onClose }) {
                 <div style={{ position: "relative", flexShrink: 0 }}>
                     <div style={{
                         width: 36, height: 36, borderRadius: 9,
-                        background: "linear-gradient(135deg, #00d9ff, #0099cc)",
+                        background: "linear-gradient(135deg, var(--primary), var(--accent))",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 0 20px rgba(0,217,255,0.5), 0 0 40px rgba(0,217,255,0.15)",
+                        boxShadow: "0 0 15px var(--primary-glow), 0 0 30px rgba(59, 89, 255, 0.1)",
                     }}>
-                        <Zap size={18} color="#030508" strokeWidth={2.5} />
+                        <Zap size={18} color="white" strokeWidth={2.5} />
                     </div>
                 </div>
 
@@ -280,7 +280,7 @@ export function Sidebar({ page, setPage, onClose }) {
                     <div style={{
                         fontFamily: "var(--font-system)", fontWeight: 700, fontSize: 13,
                         letterSpacing: "0.1em", color: "var(--primary)",
-                        textShadow: "0 0 16px rgba(0,217,255,0.8)",
+                        textShadow: "0 0 16px var(--primary-glow)",
                     }}>
                         {booted ? (
                             <TypewriterText text="THE SYSTEM" speed={55} />

@@ -26,7 +26,7 @@ export function BackgroundBeams({ className }) {
                         </linearGradient>
                     ))}
                     <radialGradient id="sn-center" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="rgba(0,217,255,0.07)" />
+                        <stop offset="0%" stopColor="rgba(59, 89, 255, 0.05)" />
                         <stop offset="100%" stopColor="transparent" />
                     </radialGradient>
                 </defs>
@@ -44,7 +44,7 @@ export function BackgroundBeams({ className }) {
 
 /* ─── Spotlight ────────────────────────────────────────
    Holofote de energia que segue o cursor no elemento pai */
-export function Spotlight({ className, fill = "rgba(0,217,255,0.12)" }) {
+export function Spotlight({ className, fill = "rgba(59, 89, 255, 0.08)" }) {
     const spotRef = useRef(null);
     useEffect(() => {
         const spot = spotRef.current;
@@ -68,7 +68,7 @@ export function Spotlight({ className, fill = "rgba(0,217,255,0.12)" }) {
 
 /* ─── CornerBrackets ───────────────────────────────────
    Decorações de cantos estilo HUD técnico              */
-export function CornerBrackets({ size = 10, color = "rgba(0,217,255,0.6)", animated = false }) {
+export function CornerBrackets({ size = 10, color = "rgba(59, 89, 255, 0.5)", animated = false }) {
     const style = (corner) => {
         const base = {
             position: "absolute", width: size, height: size,
@@ -126,7 +126,7 @@ export function MovingBorder({ children, className, containerStyle, duration = 3
         <div style={{ position: "relative", borderRadius: 11, padding: 1, overflow: "hidden", ...containerStyle }}>
             <div style={{
                 position: "absolute", inset: "-50%", aspectRatio: "1",
-                background: "conic-gradient(from 0deg, transparent 0%, #00d9ff 20%, #7c3aed 50%, transparent 70%)",
+                background: "conic-gradient(from 0deg, transparent 0%, var(--primary) 20%, var(--accent) 50%, transparent 70%)",
                 animation: `border-flow ${duration}ms linear infinite`,
                 opacity: 0.7,
             }} />
@@ -141,10 +141,10 @@ export function MovingBorder({ children, className, containerStyle, duration = 3
    Botão com energia e feedback visual de sistema       */
 export function GlowButton({ children, className, onClick, type = "button", variant = "primary" }) {
     const v = {
-        primary: { bg: "linear-gradient(135deg, #00d9ff, #0099cc)", shadow: "rgba(0,217,255,0.4)", text: "#030508" },
+        primary: { bg: "linear-gradient(135deg, var(--primary), var(--accent))", shadow: "var(--primary-glow)", text: "white" },
         purple: { bg: "linear-gradient(135deg, #7c3aed, #6d28d9)", shadow: "rgba(124,58,237,0.4)", text: "white" },
         gold: { bg: "linear-gradient(135deg, #f59e0b, #d97706)", shadow: "rgba(245,158,11,0.4)", text: "#030508" },
-        ghost: { bg: "rgba(0,217,255,0.08)", shadow: "rgba(0,217,255,0.1)", text: "var(--primary)" },
+        ghost: { bg: "rgba(59,89,255,0.08)", shadow: "rgba(59,89,255,0.1)", text: "var(--primary)" },
     }[variant] || {};
 
     return (
@@ -174,7 +174,7 @@ export function ScanlineOverlay() {
         <div style={{
             position: "fixed", inset: 0, pointerEvents: "none",
             zIndex: 9997, mixBlendMode: "overlay",
-            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,217,255,0.012) 2px, rgba(0,217,255,0.012) 4px)",
+            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(59, 89, 255, 0.01) 2px, rgba(59, 89, 255, 0.01) 4px)",
         }} />
     );
 }
@@ -212,7 +212,7 @@ export function ShimmerCard({ children, className, style, ...props }) {
         <div className={cn(className)} style={{ position: "relative", borderRadius: 10, overflow: "hidden", ...style }} {...props}>
             <div style={{
                 position: "absolute", inset: 0, borderRadius: "inherit",
-                background: "linear-gradient(135deg, rgba(0,217,255,0.22), rgba(124,58,237,0.15), rgba(0,217,255,0.22))",
+                background: "linear-gradient(135deg, rgba(59, 89, 255, 0.22), rgba(124, 58, 237, 0.15), rgba(59, 89, 255, 0.22))",
                 backgroundSize: "200% 200%", animation: "shimmer 4s linear infinite",
                 padding: 1, WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                 WebkitMaskComposite: "xor", maskComposite: "exclude",

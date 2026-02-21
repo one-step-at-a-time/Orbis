@@ -26,7 +26,7 @@ export function SpotlightCard({ children, style, className = '' }) {
             {pos.visible && (
                 <div style={{
                     position: 'absolute', inset: 0, pointerEvents: 'none', borderRadius: 'inherit',
-                    background: `radial-gradient(380px circle at ${pos.x}px ${pos.y}px, rgba(0,217,255,0.09), transparent 65%)`,
+                    background: `radial-gradient(380px circle at ${pos.x}px ${pos.y}px, rgba(59, 89, 255, 0.08), transparent 65%)`,
                 }} />
             )}
             {/* Hover scan line */}
@@ -34,7 +34,7 @@ export function SpotlightCard({ children, style, className = '' }) {
                 <div style={{
                     position: 'absolute', left: 0, right: 0, pointerEvents: 'none',
                     top: pos.y - 1, height: 1,
-                    background: `linear-gradient(90deg, transparent, rgba(0,217,255,0.25) ${Math.round((pos.x / (cardRef.current?.offsetWidth || 1)) * 100)}%, transparent)`,
+                    background: `linear-gradient(90deg, transparent, rgba(59, 89, 255, 0.2) ${Math.round((pos.x / (cardRef.current?.offsetWidth || 1)) * 100)}%, transparent)`,
                     opacity: 0.5,
                 }} />
             )}
@@ -65,9 +65,9 @@ export function StatsCard({ title, value, subtitle, icon: Icon, iconColor, bgCol
                 </div>
                 <div style={{
                     padding: 10, borderRadius: 8,
-                    background: bgColor || `rgba(0,217,255,0.06)`,
-                    border: `1px solid ${iconColor || '#00d9ff'}20`,
-                    boxShadow: `0 0 20px ${iconColor || '#00d9ff'}10`,
+                    background: bgColor || `rgba(59, 89, 255, 0.05)`,
+                    border: `1px solid ${iconColor || 'var(--primary)'}20`,
+                    boxShadow: `0 0 20px ${iconColor || 'var(--primary)'}10`,
                 }}>
                     <Icon size={20} color={iconColor || "var(--primary)"} />
                 </div>

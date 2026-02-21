@@ -24,10 +24,10 @@ export function AnalisesPage() {
         : 0;
 
     const metrics = [
-        { title: "Taxa de Conclusão", value: `${taskRate}%`, icon: CheckCircle2, color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-        { title: "Produtividade", value: `${Math.min(taskRate + habitRate, 100) > 0 ? Math.round((taskRate + habitRate) / 2) : 0}%`, icon: Activity, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-        { title: "Saúde Financeira", value: receitas > 0 ? `${Math.min(Math.round((saldo / receitas) * 100 + 50), 100)}%` : (saldo >= 0 ? "100%" : "0%"), icon: DollarSign, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
-        { title: "Consistência Hábitos", value: `${habitRate}%`, icon: Target, color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+        { title: "Taxa de Conclusão", value: `${taskRate}%`, icon: CheckCircle2, color: "var(--success)", bg: "rgba(0,255,157,0.1)" },
+        { title: "Produtividade", value: `${Math.min(taskRate + habitRate, 100) > 0 ? Math.round((taskRate + habitRate) / 2) : 0}%`, icon: Activity, color: "var(--primary)", bg: "rgba(59,89,255,0.1)" },
+        { title: "Saúde Financeira", value: receitas > 0 ? `${Math.min(Math.round((saldo / receitas) * 100 + 50), 100)}%` : (saldo >= 0 ? "100%" : "0%"), icon: DollarSign, color: "var(--accent)", bg: "rgba(124,58,237,0.1)" },
+        { title: "Consistência Hábitos", value: `${habitRate}%`, icon: Target, color: "var(--warning)", bg: "rgba(245,158,11,0.1)" },
     ];
 
     // Últimos 5 meses de dados reais agrupados por mês

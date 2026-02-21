@@ -11,50 +11,55 @@
 
 /* ── DESIGN TOKENS ──────────────────────────────────── */
 :root {
-    /* Energy Colors */
-    --primary: #00d9ff;
-    --primary-glow: rgba(0, 217, 255, 0.25);
-    --accent: #00d9ff;
-    --accent-glow: rgba(0, 217, 255, 0.2);
-    --energy-secondary: #7c3aed;
+    /* Energy Colors — Project-Nebula Palette */
+    --primary: #3b59ff;
+    /* Quantum Blue */
+    --primary-glow: rgba(59, 89, 255, 0.3);
+    --accent: #7c3aed;
+    /* Nebula Purple */
+    --accent-glow: rgba(124, 58, 237, 0.3);
+    --energy-secondary: #00d9ff;
+    /* Cyber Cyan */
     --energy-gold: #f59e0b;
     --success: #00ff9d;
     --warning: #f59e0b;
     --danger: #ff3d71;
-    --purple: #7c3aed;
+    --purple: #4424a7;
 
     /* Glow System */
-    --glow-primary: 0 0 20px rgba(0, 217, 255, 0.35), 0 0 60px rgba(0, 217, 255, 0.1);
-    --glow-secondary: 0 0 20px rgba(124, 58, 237, 0.35), 0 0 60px rgba(124, 58, 237, 0.1);
+    --glow-primary: 0 0 20px rgba(59, 89, 255, 0.4), 0 0 60px rgba(59, 89, 255, 0.1);
+    --glow-secondary: 0 0 20px rgba(124, 58, 237, 0.4), 0 0 60px rgba(124, 58, 237, 0.1);
     --glow-gold: 0 0 20px rgba(245, 158, 11, 0.35), 0 0 60px rgba(245, 158, 11, 0.1);
-    --glow-subtle: 0 0 12px rgba(0, 217, 255, 0.12);
+    --glow-subtle: 0 0 12px rgba(59, 89, 255, 0.15);
 
     /* Border System */
-    --border-dim: rgba(0, 217, 255, 0.05);
-    --border-low: rgba(0, 217, 255, 0.10);
-    --border-mid: rgba(0, 217, 255, 0.20);
-    --border-high: rgba(0, 217, 255, 0.45);
-    --border-active: rgba(0, 217, 255, 0.75);
+    --border-dim: rgba(59, 89, 255, 0.08);
+    --border-low: rgba(59, 89, 255, 0.15);
+    --border-mid: rgba(59, 89, 255, 0.25);
+    --border-high: rgba(59, 89, 255, 0.5);
+    --border-active: rgba(59, 89, 255, 0.8);
 
     /* Typography */
     --font-interface: 'Space Grotesk', sans-serif;
     --font-system: 'JetBrains Mono', monospace;
 
     /* Radius */
-    --radius: 10px;
+    --radius: 12px;
 }
 
 [data-theme='dark'] {
-    --bg: #000000;
-    --bg-void: #000000;
-    --bg-card: #080808;
-    --bg-card-hover: #0f0f0f;
-    --bg-secondary: #050505;
-    --bg-input: #0a0a0a;
-    --border: rgba(0, 217, 255, 0.11);
-    --text: #dceef8;
-    --text-muted: #4a6882;
-    --text-dim: #253545;
+    --bg: #0b0b1a;
+    /* Deep Space */
+    --bg-void: #050508;
+    --bg-card: #131325;
+    /* Dark Nebula Area */
+    --bg-card-hover: #1a1a35;
+    --bg-secondary: #0e0e1e;
+    --bg-input: #080815;
+    --border: rgba(59, 89, 255, 0.15);
+    --text: #eef2ff;
+    --text-muted: #8b9bb4;
+    --text-dim: #3a475e;
 }
 
 [data-theme='light'] {
@@ -569,17 +574,19 @@ input::placeholder {
 
 /* ── CHAT ───────────────────────────────────────────── */
 .chat-bubble-user {
-    background: linear-gradient(135deg, #00d9ff, #0099cc);
-    color: #030508;
+    background: var(--purple);
+    color: white;
     border-radius: 18px 18px 4px 18px;
-    font-weight: 500;
+    font-weight: 400;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chat-bubble-ai {
-    background: var(--bg-card);
-    border: 1px solid var(--border-low);
+    background: #161b33;
+    border: 1px solid rgba(59, 89, 255, 0.2);
     color: var(--text);
     border-radius: 18px 18px 18px 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ── STATS ──────────────────────────────────────────── */

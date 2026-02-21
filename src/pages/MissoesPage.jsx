@@ -9,11 +9,11 @@ import { usePlayer } from '../context/PlayerContext';
 import { SystemWindow } from '../components/SystemWindow';
 
 const STAT_CONFIG = {
-    STR: { icon: Zap,    color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.25)',  label: 'STR', name: 'Força' },
-    VIT: { icon: Shield, color: '#22c55e', bg: 'rgba(34,197,94,0.08)',  border: 'rgba(34,197,94,0.25)',  label: 'VIT', name: 'Vitalidade' },
-    INT: { icon: Brain,  color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', label: 'INT', name: 'Inteligência' },
-    AGI: { icon: Wind,   color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', label: 'AGI', name: 'Agilidade' },
-    SEN: { icon: Eye,    color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.25)', label: 'SEN', name: 'Sensibilidade' },
+    STR: { icon: Zap, color: '#ef4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', label: 'STR', name: 'Força' },
+    VIT: { icon: Shield, color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', label: 'VIT', name: 'Vitalidade' },
+    INT: { icon: Brain, color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', label: 'INT', name: 'Inteligência' },
+    AGI: { icon: Wind, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', label: 'AGI', name: 'Agilidade' },
+    SEN: { icon: Eye, color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.25)', label: 'SEN', name: 'Sensibilidade' },
 };
 
 const PARTICLES_OPTIONS = {
@@ -91,8 +91,8 @@ export function MissoesPage() {
                         fontFamily: "'JetBrains Mono', monospace",
                         fontSize: 22,
                         fontWeight: 800,
-                        color: '#06b6d4',
-                        textShadow: '0 0 24px rgba(6,182,212,0.5)',
+                        color: 'var(--primary)',
+                        textShadow: 'var(--glow-primary)',
                         letterSpacing: 3,
                         textTransform: 'uppercase',
                     }}>
@@ -111,8 +111,8 @@ export function MissoesPage() {
                             width: 7,
                             height: 7,
                             borderRadius: '50%',
-                            background: '#06b6d4',
-                            boxShadow: '0 0 8px #06b6d4',
+                            background: 'var(--primary)',
+                            boxShadow: 'var(--glow-primary)',
                             animation: 'pulse-ring 2s cubic-bezier(0.4,0,0.6,1) infinite',
                         }} />
                         <span style={{
@@ -120,7 +120,7 @@ export function MissoesPage() {
                             fontSize: 10,
                             fontWeight: 700,
                             letterSpacing: 2,
-                            color: '#06b6d4',
+                            color: 'var(--primary)',
                         }}>
                             SISTEMA ATIVO
                         </span>

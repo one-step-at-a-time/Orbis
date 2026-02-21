@@ -3,17 +3,17 @@ import { X, Save, CheckCircle } from 'lucide-react';
 import { useAppAuth } from '../context/AuthContext';
 
 const CLASSES = [
-    { value: "Guerreiro",     label: "Guerreiro     — Força e resistência" },
-    { value: "Mago",          label: "Mago          — Inteligência e estratégia" },
-    { value: "Arqueiro",      label: "Arqueiro      — Precisão e agilidade" },
-    { value: "Curandeiro",    label: "Curandeiro    — Equilíbrio e saúde" },
-    { value: "Assassino",     label: "Assassino     — Velocidade e foco" },
-    { value: "Tanque",        label: "Tanque        — Disciplina e persistência" },
-    { value: "Estudante",     label: "Estudante     — Aprendizado constante" },
+    { value: "Guerreiro", label: "Guerreiro     — Força e resistência" },
+    { value: "Mago", label: "Mago          — Inteligência e estratégia" },
+    { value: "Arqueiro", label: "Arqueiro      — Precisão e agilidade" },
+    { value: "Curandeiro", label: "Curandeiro    — Equilíbrio e saúde" },
+    { value: "Assassino", label: "Assassino     — Velocidade e foco" },
+    { value: "Tanque", label: "Tanque        — Disciplina e persistência" },
+    { value: "Estudante", label: "Estudante     — Aprendizado constante" },
     { value: "Desenvolvedor", label: "Desenvolvedor — Lógica e criação" },
-    { value: "Empreendedor",  label: "Empreendedor  — Visão e execução" },
-    { value: "Atleta",        label: "Atleta        — Performance e evolução" },
-    { value: "Criativo",      label: "Criativo      — Inovação e expressão" },
+    { value: "Empreendedor", label: "Empreendedor  — Visão e execução" },
+    { value: "Atleta", label: "Atleta        — Performance e evolução" },
+    { value: "Criativo", label: "Criativo      — Inovação e expressão" },
 ];
 
 export function HunterProfileModal({ onClose }) {
@@ -30,7 +30,7 @@ export function HunterProfileModal({ onClose }) {
         try {
             const raw = localStorage.getItem('orbis_hunter_profile');
             if (raw) setProfile(p => ({ ...p, ...JSON.parse(raw) }));
-        } catch {}
+        } catch { }
     }, []);
 
     const handleSave = () => {
@@ -51,9 +51,9 @@ export function HunterProfileModal({ onClose }) {
                 zIndex: 1,
                 width: "100%",
                 maxWidth: 540,
-                background: "#090d1a",
-                border: "1px solid rgba(6,182,212,0.3)",
-                boxShadow: "0 0 50px rgba(6,182,212,0.12)",
+                background: "#0b0b1a",
+                border: "1px solid var(--border)",
+                boxShadow: "0 0 50px rgba(59, 89, 255, 0.12)",
                 borderRadius: 16,
                 padding: 32,
                 maxHeight: "90vh",
@@ -63,8 +63,8 @@ export function HunterProfileModal({ onClose }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
                     <div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#06b6d4", boxShadow: "0 0 8px rgba(6,182,212,0.8)", flexShrink: 0, display: "inline-block" }} />
-                            <h2 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: "#06b6d4", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", boxShadow: "var(--glow-primary)", flexShrink: 0, display: "inline-block" }} />
+                            <h2 style={{ fontFamily: "var(--font-system)", fontSize: 15, fontWeight: 700, color: "var(--primary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                                 [ PERFIL DO CAÇADOR ]
                             </h2>
                         </div>
@@ -80,7 +80,7 @@ export function HunterProfileModal({ onClose }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     {/* Nome */}
                     <div>
-                        <label style={{ fontSize: 10, color: "#06b6d4", display: "block", marginBottom: 6, fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em" }}>
+                        <label style={{ fontSize: 10, color: "var(--primary)", display: "block", marginBottom: 6, fontFamily: "var(--font-system)", letterSpacing: "0.1em" }}>
                             IDENTIFICAÇÃO *
                         </label>
                         <input

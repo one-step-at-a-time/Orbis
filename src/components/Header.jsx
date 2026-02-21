@@ -9,15 +9,15 @@ export function Header({ user, onLogout, onMenuToggle, onSearchToggle }) {
 
     return (
         <>
-            <header className="blur-header" style={{ height: 72, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid rgba(6,182,212,0.15)", position: "sticky", top: 0, zIndex: 40, background: "rgba(5,8,16,0.88)", backdropFilter: "blur(12px)" }}>
+            <header className="blur-header" style={{ height: 72, padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 40, background: "rgba(11,11,26,0.85)", backdropFilter: "blur(12px)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <button onClick={onMenuToggle} className="btn-ghost sidebar-toggle" style={{ display: "none" }}>
                         <Menu size={20} />
                     </button>
                     <button onClick={onSearchToggle} className="btn-ghost" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderRadius: 12, background: "rgba(17,24,39,0.4)" }}>
-                        <Search size={18} color="var(--text-dim)" />
-                        <span style={{ fontSize: 13, color: "var(--text-dim)", display: "none" }} className="header-search-text">Buscar...</span>
-                        <kbd style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(6,182,212,0.06)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>⌘K</kbd>
+                        <Search size={18} color="var(--text-muted)" />
+                        <span style={{ fontSize: 13, color: "var(--text-muted)", display: "none" }} className="header-search-text">Search archives...</span>
+                        <kbd style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "rgba(59,89,255,0.08)", color: "var(--primary)", border: "1px solid var(--border)" }}>⌘K</kbd>
                     </button>
                 </div>
 
@@ -35,11 +35,11 @@ export function Header({ user, onLogout, onMenuToggle, onSearchToggle }) {
                         style={{ padding: "8px 12px", borderRadius: 12, display: "flex", alignItems: "center", gap: 8 }}
                         title="Perfil do Caçador"
                     >
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, rgba(6,182,212,0.2), rgba(8,145,178,0.2))", border: "1px solid rgba(6,182,212,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <User size={14} color="#06b6d4" />
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(59, 89, 255, 0.1)", border: "1px solid var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <User size={14} color="var(--primary)" />
                         </div>
                         {user?.nome && (
-                            <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#06b6d4", fontWeight: 600 }} className="header-search-text">
+                            <span style={{ fontSize: 12, fontFamily: "var(--font-system)", color: "var(--primary)", fontWeight: 700 }} className="header-search-text">
                                 {user.nome}
                             </span>
                         )}
