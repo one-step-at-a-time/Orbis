@@ -67,7 +67,7 @@ function SidebarNav({ page, setPage, onClose }) {
                                 background: "var(--primary)", color: "var(--bg-void)",
                                 fontSize: 9, fontWeight: 800, fontFamily: "var(--font-system)",
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                boxShadow: "0 0 10px rgba(0,217,255,0.7)",
+                                boxShadow: "0 0 10px rgba(0,240,255,0.7)",
                                 animation: "pulse-ring 2s ease-in-out infinite",
                             }}>
                                 {pendingCount}
@@ -98,7 +98,7 @@ function OperatorPanel() {
             <div style={{
                 padding: "12px 14px",
                 borderRadius: 8,
-                background: "linear-gradient(135deg, rgba(10,16,32,0.98), rgba(14,22,42,0.98))",
+                background: "linear-gradient(135deg, rgba(0,5,6,0.98), rgba(0,10,12,0.98))",
                 border: `1px solid ${color}30`,
                 boxShadow: `0 0 24px ${glow}18, inset 0 1px 0 rgba(255,255,255,0.03)`,
                 position: "relative", overflow: "hidden",
@@ -147,7 +147,7 @@ function OperatorPanel() {
                 {player.stats && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 4, marginBottom: 10 }}>
                         {Object.entries(player.stats).map(([key, val]) => (
-                            <div key={key} style={{ textAlign: "center", padding: "4px 0", background: "rgba(0,217,255,0.03)", borderRadius: 4, border: "1px solid rgba(0,217,255,0.06)" }}>
+                            <div key={key} style={{ textAlign: "center", padding: "4px 0", background: "rgba(0,240,255,0.03)", borderRadius: 0, border: "1px solid rgba(0,240,255,0.08)" }}>
                                 <div style={{ fontSize: 7, color: "var(--text-dim)", fontFamily: "var(--font-system)", letterSpacing: 1 }}>{key}</div>
                                 <div style={{ fontSize: 12, fontWeight: 700, color, fontFamily: "var(--font-system)" }}>{val}</div>
                             </div>
@@ -210,14 +210,15 @@ function DataBackup() {
             {[{ label: "EXPORT", icon: <Download size={11} />, fn: handleExport }, { label: "IMPORT", icon: <Upload size={11} />, fn: () => importRef.current?.click() }].map(({ label, icon, fn }) => (
                 <button key={label} onClick={fn} style={{
                     flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-                    gap: 5, padding: "6px 0", borderRadius: 6,
-                    background: "rgba(0,217,255,0.05)", border: "1px solid rgba(0,217,255,0.15)",
-                    color: "var(--primary)", cursor: "pointer", fontSize: 10,
-                    fontFamily: "var(--font-system)", letterSpacing: "0.08em",
+                    gap: 5, padding: "6px 0", borderRadius: 0,
+                    clipPath: "polygon(4px 0%, 100% 0%, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0% 100%, 0% 4px)",
+                    background: "rgba(0,240,255,0.04)", border: "1px solid rgba(0,240,255,0.18)",
+                    color: "var(--primary)", cursor: "pointer", fontSize: 9,
+                    fontFamily: "var(--font-interface)", letterSpacing: "0.12em", textTransform: "uppercase",
                     transition: "all 0.18s",
                 }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,217,255,0.12)"; e.currentTarget.style.boxShadow = "0 0 12px rgba(0,217,255,0.15)"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,217,255,0.05)"; e.currentTarget.style.boxShadow = "none"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(0,240,255,0.12)"; e.currentTarget.style.boxShadow = "0 0 12px rgba(0,240,255,0.15)"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,240,255,0.05)"; e.currentTarget.style.boxShadow = "none"; }}
                 >
                     {icon} {label}
                 </button>
@@ -234,53 +235,63 @@ export function Sidebar({ page, setPage, onClose }) {
     return (
         <div style={{
             display: "flex", flexDirection: "column", height: "100%", width: 240,
-            background: "linear-gradient(180deg, #0b0b1a 0%, #050508 100%)",
-            borderRight: "1px solid rgba(59, 89, 255, 0.12)",
+            background: "linear-gradient(180deg, #030303 0%, #000000 60%, #000000 100%)",
+            borderRight: "1px solid rgba(0, 240, 255, 0.1)",
             position: "relative", overflow: "hidden",
         }}>
-            <Spotlight fill="rgba(59, 89, 255, 0.08)" />
+            <Spotlight fill="rgba(0, 240, 255, 0.06)" />
 
             {/* Top energy line */}
             <div style={{
                 position: "absolute", top: 0, left: 0, right: 0, height: "1px",
-                background: "linear-gradient(90deg, transparent, var(--primary), transparent)",
-                opacity: 0.6,
+                background: "linear-gradient(90deg, transparent, #00F0FF, transparent)",
+                opacity: 0.7,
+                boxShadow: "0 0 8px rgba(0,240,255,0.5)",
             }} />
 
             {/* Subtle top gradient */}
             <div style={{
-                position: "absolute", top: 0, left: 0, right: 0, height: 160,
-                background: "linear-gradient(180deg, rgba(0,217,255,0.04) 0%, transparent 100%)",
+                position: "absolute", top: 0, left: 0, right: 0, height: 140,
+                background: "linear-gradient(180deg, rgba(0,240,255,0.05) 0%, transparent 100%)",
                 pointerEvents: "none",
+            }} />
+
+            {/* BOTTOM GRADIENT — visibility for lower buttons */}
+            <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0, height: 180,
+                background: "linear-gradient(to top, rgba(0,240,255,0.15) 0%, rgba(0,240,255,0.06) 40%, transparent 100%)",
+                pointerEvents: "none",
+                zIndex: 0,
             }} />
 
             {/* Logo — Command Center Header */}
             <div style={{
                 padding: "18px 16px 14px",
-                borderBottom: "1px solid rgba(0,217,255,0.08)",
+                borderBottom: "1px solid rgba(0,240,255,0.08)",
                 position: "relative", zIndex: 1,
                 display: "flex", alignItems: "center", gap: 10,
             }}>
                 {/* Zap icon with moving border */}
                 <div style={{ position: "relative", flexShrink: 0 }}>
                     <div style={{
-                        width: 36, height: 36, borderRadius: 9,
-                        background: "linear-gradient(135deg, var(--primary), var(--accent))",
+                        width: 36, height: 36,
+                        clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
+                        background: "linear-gradient(135deg, #00F0FF, #007888)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 0 15px var(--primary-glow), 0 0 30px rgba(59, 89, 255, 0.1)",
+                        boxShadow: "0 0 20px rgba(0,240,255,0.6), 0 0 40px rgba(0,240,255,0.2)",
                     }}>
-                        <Zap size={18} color="white" strokeWidth={2.5} />
+                        <Zap size={18} color="#000000" strokeWidth={2.5} />
                     </div>
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 8, fontFamily: "var(--font-system)", letterSpacing: "0.2em", color: "var(--text-dim)", marginBottom: 2 }}>
+                    <div style={{ fontSize: 7, fontFamily: "var(--font-system)", letterSpacing: "0.25em", color: "rgba(0,240,255,0.4)", marginBottom: 3, textTransform: "uppercase" }}>
                         SOVEREIGN NEXUS
                     </div>
                     <div style={{
                         fontFamily: "var(--font-system)", fontWeight: 700, fontSize: 13,
-                        letterSpacing: "0.1em", color: "var(--primary)",
-                        textShadow: "0 0 16px var(--primary-glow)",
+                        letterSpacing: "0.15em", color: "#00F0FF",
+                        textShadow: "0 0 16px rgba(0,240,255,0.7), 0 0 30px rgba(0,240,255,0.3)",
                     }}>
                         {booted ? (
                             <TypewriterText text="THE SYSTEM" speed={55} />
@@ -303,7 +314,7 @@ export function Sidebar({ page, setPage, onClose }) {
 
                 {/* Footer */}
                 <div style={{
-                    padding: "8px 16px", borderTop: "1px solid rgba(0,217,255,0.07)",
+                    padding: "8px 16px", borderTop: "1px solid rgba(0,240,255,0.07)",
                     display: "flex", alignItems: "center", gap: 8, position: "relative", zIndex: 1,
                 }}>
                     <span style={{
