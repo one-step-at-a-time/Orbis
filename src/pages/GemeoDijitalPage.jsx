@@ -3,6 +3,7 @@
 // Integra-se ao roteador via App.jsx (page: 'gemeodigital').
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Zap, Shield, X, Send, ChevronRight,
@@ -455,7 +456,7 @@ export function GemeoDijitalPage() {
   // Focar no input ao montar
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -659,6 +660,7 @@ export function GemeoDijitalPage() {
           />
         )}
       </AnimatePresence>
-    </div>
+    </div>,
+    document.body
   );
 }
