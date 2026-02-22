@@ -59,6 +59,8 @@
     --bg-input: #030303;
     --border: rgba(0, 240, 255, 0.12);
     --text: #D0FEFF;
+    --text-primary: #D0FEFF;
+    --text-secondary: #8ABFC5;
     --text-muted: #5A8A90;
     --text-dim: #2A4A50;
 }
@@ -72,6 +74,8 @@
     --bg-input: #030303;
     --border: rgba(0, 240, 255, 0.12);
     --text: #D0FEFF;
+    --text-primary: #D0FEFF;
+    --text-secondary: #8ABFC5;
     --text-muted: #5A8A90;
     --text-dim: #2A4A50;
 }
