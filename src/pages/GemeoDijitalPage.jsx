@@ -1,65 +1,179 @@
 // GÊMEO DIGITAL — Módulo de Saúde Holística
-// SVG holográfico + CSS puro. Sem dependências externas de 3D.
+// SVG holográfico + dados reais de player, missões e hábitos.
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, HeartPulse, Cpu, X, ChevronRight, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Brain, Zap, HeartPulse, Cpu, X, ChevronRight, Activity, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
 import { CornerBrackets } from '../components/AceternityUI';
+import { usePlayer } from '../context/PlayerContext';
+import { useMissions } from '../context/MissionContext';
+import { useAppData } from '../context/DataContext';
 
 // ─── Paleta de camadas ────────────────────────────────────────────────────────
 
 const LAYERS = [
-  { id: 'all',        label: 'TODOS',      color: '#00F0FF', icon: Cpu       },
-  { id: 'fisico',     label: 'FÍSICO',     color: '#FF2A4A', icon: Zap       },
-  { id: 'neural',     label: 'NEURAL',     color: '#00F0FF', icon: Brain     },
+  { id: 'all',        label: 'TODOS',      color: '#00F0FF', icon: Cpu        },
+  { id: 'fisico',     label: 'FÍSICO',     color: '#FF2A4A', icon: Zap        },
+  { id: 'neural',     label: 'NEURAL',     color: '#00F0FF', icon: Brain      },
   { id: 'vitalidade', label: 'VITALIDADE', color: '#00FF9D', icon: HeartPulse },
 ];
 
 const GROUP_META = {
-  neural: {
-    label: 'Sistema Neural',
-    icon: Brain,
-    color: '#00F0FF',
-    description: 'Córtex pré-frontal, hipocampo e rede de modo padrão.',
-  },
-  vitalidade: {
-    label: 'Sistema de Vitalidade',
-    icon: HeartPulse,
-    color: '#00FF9D',
-    description: 'Cardiovascular, respiratório e homeostase metabólica.',
-  },
-  fisico: {
-    label: 'Sistema Físico',
-    icon: Zap,
-    color: '#FF2A4A',
-    description: 'Musculatura esquelética, articulações e sistema locomotor.',
-  },
+  neural:     { label: 'Sistema Neural',      icon: Brain,      color: '#00F0FF' },
+  vitalidade: { label: 'Sistema de Vitalidade', icon: HeartPulse, color: '#00FF9D' },
+  fisico:     { label: 'Sistema Físico',      icon: Zap,        color: '#FF2A4A' },
 };
 
-const MOCK_ANALYSES = {
-  neural: {
-    status: 'Sobrecarga Detectada',
-    statusColor: '#FFB800',
-    insight: 'Fragmentação do ciclo de sono compromete consolidação de memória.',
-    suggested_mission: { title: 'Dormir 8h ininterruptas', reward: '+2 INT' },
-  },
-  vitalidade: {
-    status: 'Operacional',
-    statusColor: '#00FF9D',
-    insight: 'Frequência cardíaca em repouso estável. Hidratação abaixo do ideal.',
-    suggested_mission: { title: 'Beber 3L de água hoje', reward: '+2 VIT' },
-  },
-  fisico: {
-    status: 'Recuperação Ativa',
-    statusColor: '#FF2A4A',
-    insight: 'Microlesões musculares indicam treino intenso. Proteína insuficiente.',
-    suggested_mission: { title: 'Ingestão: 2g proteína/kg', reward: '+3 STR' },
-  },
-};
+// ─── Hook: processa dados reais dos contextos ─────────────────────────────────
+
+function useHealthData() {
+  const { player } = usePlayer();
+  const { missions, missionState } = useMissions();
+  const { habits } = useAppData();
+
+  const today = new Date().toISOString().split('T')[0];
+  const stats = { STR: 0, VIT: 0, INT: 0, AGI: 0, SEN: 0, ...player.stats };
+
+  // Normaliza stat para 0–100 (cada ponto = 5%, cap 100%)
+  const normStat = (val) => Math.min(Math.round((val || 0) * 5), 100);
+
+  // Verifica missão completa
+  const missionDone = (id) => {
+    const m = missions.find(m => m.id === id);
+    if (!m) return false;
+    if (m.type === 'counter') return (missionState.progress?.[id] || 0) >= m.max;
+    return !!missionState.completed?.[id];
+  };
+
+  // Progresso de água (0–8)
+  const waterProgress = missionState.progress?.agua || 0;
+
+  // Hábitos concluídos hoje
+  const habitsToday = habits.filter(h => h.logs?.some(l => l.data === today)).length;
+  const habitRate = habits.length > 0 ? Math.round((habitsToday / habits.length) * 100) : null;
+
+  // ── NEURAL ──
+  const leituraOk   = missionDone('leitura');
+  const meditacaoOk = missionDone('meditacao');
+  const neuralScore = Math.round((normStat(stats.INT) + normStat(stats.SEN)) / 2);
+  const neuralMissionsRate = [leituraOk, meditacaoOk].filter(Boolean).length * 50;
+
+  const neuralStatus = leituraOk && meditacaoOk
+    ? { label: 'Operacional',        color: '#00FF9D' }
+    : leituraOk || meditacaoOk
+    ? { label: 'Parcialmente Ativo', color: '#FFB800' }
+    : { label: 'Subestimulado',      color: '#FF2A4A' };
+
+  const neuralInsight = leituraOk && meditacaoOk
+    ? 'Sistema neural calibrado. INT e SEN em progressão. Mantenha o ritmo diário.'
+    : !leituraOk && !meditacaoOk
+    ? 'Nenhuma atividade cognitiva registrada hoje. Leitura e meditação são essenciais para INT e SEN.'
+    : !leituraOk
+    ? 'Leitura pendente — a ausência compromete o ganho de INT diário.'
+    : 'Meditação pendente — SEN vulnerável sem prática de foco.';
+
+  const neuralMission = !leituraOk
+    ? missions.find(m => m.id === 'leitura')
+    : !meditacaoOk
+    ? missions.find(m => m.id === 'meditacao')
+    : null;
+
+  // ── VITALIDADE ──
+  const sonoOk  = missionDone('sono');
+  const aguaOk  = missionDone('agua');
+  const vitScore = normStat(stats.VIT);
+  const hydration = Math.round((waterProgress / 8) * 100);
+
+  const vitalStatus = sonoOk && aguaOk
+    ? { label: 'Operacional',       color: '#00FF9D' }
+    : !sonoOk && !aguaOk
+    ? { label: 'Déficit Crítico',   color: '#FF2A4A' }
+    : !sonoOk
+    ? { label: 'Privação de Sono',  color: '#FF2A4A' }
+    : { label: 'Déficit Hídrico',   color: '#FFB800' };
+
+  const vitalInsight = sonoOk && aguaOk
+    ? 'Recuperação e hidratação em dia. VIT em progresso sólido.'
+    : !sonoOk && !aguaOk
+    ? 'Sono e hidratação comprometidos. Risco elevado de queda em VIT.'
+    : !sonoOk
+    ? 'Sono insuficiente registrado. Recuperação muscular e cognitiva prejudicada.'
+    : `Hidratação em ${waterProgress}/8 copos. Complete para garantir o bônus de VIT.`;
+
+  const vitalMission = !aguaOk
+    ? missions.find(m => m.id === 'agua')
+    : !sonoOk
+    ? missions.find(m => m.id === 'sono')
+    : null;
+
+  // ── FÍSICO ──
+  const physicalIds = ['flexoes', 'abdominais', 'agachamentos', 'corrida'];
+  const physicalDone = physicalIds.filter(id => missionDone(id));
+  const physicalRate = Math.round((physicalDone.length / physicalIds.length) * 100);
+  const strScore  = normStat(stats.STR);
+  const agiScore  = normStat(stats.AGI);
+
+  const fisicoStatus = physicalRate === 100
+    ? { label: 'Treino Completo',   color: '#00FF9D' }
+    : physicalRate >= 50
+    ? { label: 'Recuperação Ativa', color: '#FFB800' }
+    : physicalRate > 0
+    ? { label: 'Iniciado',          color: '#FFB800' }
+    : { label: 'Inativo',           color: '#FF2A4A' };
+
+  const fisicoInsight = physicalRate === 100
+    ? 'Todos os exercícios concluídos. STR e AGI em progressão máxima hoje.'
+    : physicalRate === 0
+    ? 'Nenhum treino registrado. STR e AGI estagnados hoje.'
+    : `${physicalDone.length}/${physicalIds.length} exercícios concluídos. Continue para maximizar o ganho de STR/AGI.`;
+
+  const pendingPhysical = physicalIds.find(id => !missionDone(id));
+  const fisicoMission = pendingPhysical ? missions.find(m => m.id === pendingPhysical) : null;
+
+  return {
+    neural: {
+      metrics: [
+        { label: 'Foco Mental',   value: normStat(stats.INT) },
+        { label: 'Serenidade',    value: normStat(stats.SEN) },
+        { label: 'Ativ. Hoje',    value: neuralMissionsRate   },
+      ],
+      status:  neuralStatus,
+      insight: neuralInsight,
+      mission: neuralMission,
+      score:   neuralScore,
+    },
+    vitalidade: {
+      metrics: [
+        { label: 'Hidratação',    value: hydration  },
+        { label: 'Sono',          value: sonoOk ? 100 : 0 },
+        { label: 'Vitalidade',    value: vitScore   },
+      ],
+      status:  vitalStatus,
+      insight: vitalInsight,
+      mission: vitalMission,
+      score:   Math.round((hydration + (sonoOk ? 100 : 0) + vitScore) / 3),
+    },
+    fisico: {
+      metrics: [
+        { label: 'Força',         value: strScore     },
+        { label: 'Agilidade',     value: agiScore     },
+        { label: 'Treino Hoje',   value: physicalRate },
+      ],
+      status:  fisicoStatus,
+      insight: fisicoInsight,
+      mission: fisicoMission,
+      score:   Math.round((strScore + agiScore + physicalRate) / 3),
+    },
+    habitRate,
+    habitsToday,
+    totalHabits: habits.length,
+    playerLevel: player.level,
+  };
+}
 
 // ─── Silhueta SVG ─────────────────────────────────────────────────────────────
 
-function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover }) {
+function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover, healthData }) {
   const isActive = (group) => activeLayer === 'all' || activeLayer === group;
 
   const groupOpacity = (group) => {
@@ -68,7 +182,13 @@ function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover
     return 0.55;
   };
 
-  const groupColor = (group) => GROUP_META[group].color;
+  // Cor base da região: usa a cor do status de saúde (verde/amarelo/vermelho)
+  const groupColor = (group) => {
+    if (hoveredGroup === group || activeLayer === group) {
+      return healthData[group]?.status?.color || GROUP_META[group].color;
+    }
+    return GROUP_META[group].color;
+  };
 
   const groupFilter = (group) => {
     if (!isActive(group)) return 'none';
@@ -102,19 +222,14 @@ function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover
         style={{ opacity: groupOpacity('neural'), filter: groupFilter('neural'), transition: 'opacity 0.3s, filter 0.3s' }}
         {...hitProps('neural')}
       >
-        {/* Cabeça */}
         <ellipse cx="80" cy="34" rx="28" ry="32" fill="none" stroke={groupColor('neural')} strokeWidth="1.8"/>
-        {/* Detalhe topo */}
         <line x1="80" y1="2" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="1.2"/>
         <line x1="60" y1="10" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="0.8" opacity="0.5"/>
         <line x1="100" y1="10" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="0.8" opacity="0.5"/>
-        {/* Ponto HUD */}
         <circle cx="80" cy="22" r="2.5" fill={groupColor('neural')} opacity="0.7"/>
         <circle cx="80" cy="22" r="5" fill="none" stroke={groupColor('neural')} strokeWidth="0.6" opacity="0.4"/>
-        {/* Olhos */}
         <rect x="64" y="34" width="10" height="4" rx="2" fill={groupColor('neural')} opacity="0.6"/>
         <rect x="86" y="34" width="10" height="4" rx="2" fill={groupColor('neural')} opacity="0.6"/>
-        {/* Pescoço */}
         <rect x="70" y="66" width="20" height="18" rx="2" fill="none" stroke={groupColor('neural')} strokeWidth="1.5"/>
       </g>
 
@@ -123,26 +238,19 @@ function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover
         style={{ opacity: groupOpacity('vitalidade'), filter: groupFilter('vitalidade'), transition: 'opacity 0.3s, filter 0.3s' }}
         {...hitProps('vitalidade')}
       >
-        {/* Ombros */}
         <path d="M42 90 Q30 95 28 108 L36 110 Q44 96 58 92 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
         <path d="M118 90 Q130 95 132 108 L124 110 Q116 96 102 92 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
-        {/* Torso */}
         <path d="M58 86 L102 86 L108 140 L104 200 L56 200 L52 140 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.8"/>
-        {/* Costelas */}
         {[100, 112, 124, 136].map((y, i) => (
           <React.Fragment key={i}>
             <line x1="58" y1={y} x2="76" y2={y + 2} stroke={groupColor('vitalidade')} strokeWidth="0.8" opacity="0.35"/>
             <line x1="102" y1={y} x2="84" y2={y + 2} stroke={groupColor('vitalidade')} strokeWidth="0.8" opacity="0.35"/>
           </React.Fragment>
         ))}
-        {/* Coração */}
         <path d="M72 110 Q72 104 78 104 Q84 104 84 110 Q84 116 78 122 Q72 116 72 110 Z"
           fill={groupColor('vitalidade')} opacity="0.25" stroke={groupColor('vitalidade')} strokeWidth="1"/>
-        {/* Coluna */}
         <line x1="80" y1="86" x2="80" y2="200" stroke={groupColor('vitalidade')} strokeWidth="0.8" strokeDasharray="4,4" opacity="0.3"/>
-        {/* Abdômen */}
         <path d="M56 200 L104 200 L106 240 L54 240 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
-        {/* Grid abdominal */}
         <line x1="68" y1="205" x2="68" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
         <line x1="80" y1="205" x2="80" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
         <line x1="92" y1="205" x2="92" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
@@ -154,38 +262,24 @@ function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover
         style={{ opacity: groupOpacity('fisico'), filter: groupFilter('fisico'), transition: 'opacity 0.3s, filter 0.3s' }}
         {...hitProps('fisico')}
       >
-        {/* Braço esq. superior */}
         <path d="M28 108 L20 108 L16 170 L28 170 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Braço esq. inferior */}
         <path d="M18 170 L12 170 L10 230 L22 230 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Mão esq. */}
         <rect x="9" y="230" width="14" height="12" rx="3" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
-        {/* Braço dir. superior */}
         <path d="M132 108 L140 108 L144 170 L132 170 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Braço dir. inferior */}
         <path d="M142 170 L148 170 L150 230 L138 230 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Mão dir. */}
         <rect x="137" y="230" width="14" height="12" rx="3" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
-        {/* Quadril */}
         <rect x="54" y="240" width="52" height="22" rx="2" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Coxa esq. */}
         <path d="M54 262 L50 262 L48 340 L62 340 L64 262 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Perna esq. */}
         <path d="M48 340 L44 340 L44 410 L62 410 L62 340 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Pé esq. */}
         <path d="M44 408 L62 408 L64 422 L40 422 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
-        {/* Coxa dir. */}
         <path d="M96 262 L106 262 L112 340 L98 340 L96 262 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Perna dir. */}
         <path d="M98 340 L116 340 L116 410 L98 410 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
-        {/* Pé dir. */}
         <path d="M98 408 L116 408 L120 422 L96 422 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
-        {/* Joelhos */}
         <circle cx="55" cy="344" r="5" fill="none" stroke={groupColor('fisico')} strokeWidth="1" opacity="0.5"/>
         <circle cx="107" cy="344" r="5" fill="none" stroke={groupColor('fisico')} strokeWidth="1" opacity="0.5"/>
       </g>
 
-      {/* Scan lines overlay */}
+      {/* Scan lines */}
       <rect x="0" y="0" width="160" height="440" fill="url(#scanlines)" pointerEvents="none" opacity="0.5"/>
 
       {/* HUD cantos */}
@@ -209,12 +303,10 @@ function ScannerLine() {
   return (
     <motion.div
       style={{
-        position: 'absolute', left: 0, right: 0,
-        height: 2,
+        position: 'absolute', left: 0, right: 0, height: 2,
         background: 'linear-gradient(90deg, transparent, rgba(0,240,255,0.7), transparent)',
         boxShadow: '0 0 12px rgba(0,240,255,0.5)',
-        pointerEvents: 'none',
-        zIndex: 2,
+        pointerEvents: 'none', zIndex: 2,
       }}
       animate={{ top: ['5%', '95%', '5%'] }}
       transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
@@ -222,13 +314,13 @@ function ScannerLine() {
   );
 }
 
-// ─── Painel de análise ────────────────────────────────────────────────────────
+// ─── Painel de análise com dados reais ───────────────────────────────────────
 
-function AnalysisPanel({ group, onClose }) {
+function AnalysisPanel({ group, healthData, onClose }) {
   if (!group) return null;
-  const meta = GROUP_META[group];
-  const analysis = MOCK_ANALYSES[group];
-  const Icon = meta.icon;
+  const meta   = GROUP_META[group];
+  const data   = healthData[group];
+  const Icon   = meta.icon;
 
   return (
     <motion.div
@@ -274,10 +366,9 @@ function AnalysisPanel({ group, onClose }) {
         </button>
       </div>
 
-      {/* Conteúdo */}
       <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-        {/* Status */}
+        {/* Status real */}
         <div>
           <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
             STATUS OPERACIONAL
@@ -285,41 +376,31 @@ function AnalysisPanel({ group, onClose }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '4px 10px',
-            background: `${analysis.statusColor}10`,
-            border: `1px solid ${analysis.statusColor}40`,
-            color: analysis.statusColor,
+            background: `${data.status.color}10`,
+            border: `1px solid ${data.status.color}40`,
+            color: data.status.color,
             fontSize: 10, fontFamily: 'var(--font-system)', letterSpacing: '0.1em',
           }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: analysis.statusColor, boxShadow: `0 0 6px ${analysis.statusColor}` }}/>
-            {analysis.status}
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: data.status.color, boxShadow: `0 0 6px ${data.status.color}` }}/>
+            {data.status.label}
           </span>
         </div>
 
-        {/* Descrição */}
-        <div>
-          <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
-            DIAGNÓSTICO
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            {meta.description}
-          </p>
-        </div>
-
-        {/* Insight */}
+        {/* Insight contextual */}
         <div style={{ padding: '10px 12px', background: `${meta.color}06`, border: `1px solid ${meta.color}20` }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <AlertTriangle size={12} color={meta.color} style={{ marginTop: 2, flexShrink: 0 }}/>
             <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-              {analysis.insight}
+              {data.insight}
             </p>
           </div>
         </div>
 
-        {/* Missão sugerida */}
-        {analysis.suggested_mission && (
+        {/* Missão real pendente */}
+        {data.mission && (
           <div>
             <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
-              MISSÃO SUGERIDA
+              MISSÃO PENDENTE
             </div>
             <div style={{
               padding: '10px 12px',
@@ -329,47 +410,66 @@ function AnalysisPanel({ group, onClose }) {
             }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <CheckCircle size={12} color="rgba(0,240,255,0.5)"/>
-                <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{analysis.suggested_mission.title}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{data.mission.label}</span>
               </div>
               <span style={{
                 fontSize: 10, fontFamily: 'var(--font-system)', color: '#00FF9D',
                 padding: '2px 8px', background: 'rgba(0,255,157,0.08)', border: '1px solid rgba(0,255,157,0.2)',
               }}>
-                {analysis.suggested_mission.reward}
+                +{data.mission.xp} XP
               </span>
             </div>
           </div>
         )}
 
-        {/* Métricas */}
+        {/* Métricas reais */}
         <div>
           <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 8 }}>
             MÉTRICAS
           </div>
-          {[
-            { label: 'Integridade', value: group === 'fisico' ? 72 : group === 'neural' ? 65 : 88 },
-            { label: 'Eficiência',  value: group === 'fisico' ? 81 : group === 'neural' ? 57 : 91 },
-            { label: 'Recuperação', value: group === 'fisico' ? 44 : group === 'neural' ? 70 : 95 },
-          ].map(({ label, value }) => (
+          {data.metrics.map(({ label, value }) => (
             <div key={label} style={{ marginBottom: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.05em' }}>{label}</span>
-                <span style={{ fontSize: 10, color: meta.color, fontFamily: 'var(--font-system)' }}>{value}%</span>
+                <span style={{ fontSize: 10, color: value >= 70 ? '#00FF9D' : value >= 40 ? '#FFB800' : '#FF2A4A', fontFamily: 'var(--font-system)' }}>
+                  {value}%
+                </span>
               </div>
               <div style={{ height: 2, background: 'rgba(255,255,255,0.05)' }}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${value}%` }}
                   transition={{ duration: 0.8, delay: 0.1 }}
-                  style={{ height: '100%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                  style={{
+                    height: '100%',
+                    background: value >= 70 ? '#00FF9D' : value >= 40 ? '#FFB800' : '#FF2A4A',
+                    boxShadow: `0 0 6px ${value >= 70 ? '#00FF9D' : value >= 40 ? '#FFB800' : '#FF2A4A'}`,
+                  }}
                 />
               </div>
             </div>
           ))}
         </div>
+
+        {/* Score geral */}
+        <div style={{
+          padding: '10px 12px',
+          background: 'rgba(0,240,255,0.03)',
+          border: '1px solid rgba(0,240,255,0.1)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <TrendingUp size={14} color={meta.color} opacity={0.7}/>
+          <div>
+            <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.12em' }}>
+              SCORE DO SISTEMA
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: meta.color, fontFamily: 'var(--font-system)' }}>
+              {data.score}<span style={{ fontSize: 10, opacity: 0.5 }}>/100</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Rodapé */}
       <div style={{
         padding: '10px 16px',
         borderTop: `1px solid ${meta.color}15`,
@@ -377,7 +477,7 @@ function AnalysisPanel({ group, onClose }) {
       }}>
         <Activity size={10} color={meta.color} style={{ opacity: 0.6 }}/>
         <span style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.1em' }}>
-          SINCRONIZADO EM TEMPO REAL
+          DADOS EM TEMPO REAL
         </span>
       </div>
     </motion.div>
@@ -387,10 +487,12 @@ function AnalysisPanel({ group, onClose }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export function GemeoDijitalPage() {
-  const [activeLayer, setActiveLayer] = useState('all');
+  const [activeLayer, setActiveLayer]   = useState('all');
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [scanKey, setScanKey] = useState(0);
+
+  const healthData = useHealthData();
 
   useEffect(() => {
     setScanKey(k => k + 1);
@@ -478,6 +580,7 @@ export function GemeoDijitalPage() {
             <HumanSilhouette
               activeLayer={activeLayer}
               hoveredGroup={hoveredGroup}
+              healthData={healthData}
               onGroupClick={(group) => setSelectedGroup(s => s === group ? null : group)}
               onGroupHover={setHoveredGroup}
             />
@@ -530,6 +633,7 @@ export function GemeoDijitalPage() {
           {selectedGroup && (
             <AnalysisPanel
               group={selectedGroup}
+              healthData={healthData}
               onClose={() => setSelectedGroup(null)}
             />
           )}
