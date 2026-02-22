@@ -156,7 +156,7 @@ function AIInsightBlock({ group, data, playerLevel }) {
         </span>
       </div>
       <p style={{
-        fontSize: 11, color: state === 'error' ? '#FF2A4A' : 'var(--text-secondary)',
+        fontSize: 11, color: state === 'error' ? '#FF2A4A' : 'var(--text-muted)',
         lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap',
       }}>
         {response}
@@ -538,7 +538,7 @@ function AnalysisPanel({ group, healthData, onClose }) {
         <div style={{ padding: '10px 12px', background: `${meta.color}06`, border: `1px solid ${meta.color}20` }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <AlertTriangle size={12} color={meta.color} style={{ marginTop: 2, flexShrink: 0 }}/>
-            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
               {data.insight}
             </p>
           </div>
@@ -558,7 +558,7 @@ function AnalysisPanel({ group, healthData, onClose }) {
             }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <CheckCircle size={12} color="rgba(0,240,255,0.5)"/>
-                <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{data.mission.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--text)' }}>{data.mission.label}</span>
               </div>
               <span style={{
                 fontSize: 10, fontFamily: 'var(--font-system)', color: '#00FF9D',
@@ -652,7 +652,7 @@ export function GemeoDijitalPage() {
   }, [activeLayer]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#000000' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', overflow: 'hidden', background: '#000000' }}>
 
       {/* ── Cabeçalho ── */}
       <div style={{
