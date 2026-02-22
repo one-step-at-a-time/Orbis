@@ -446,7 +446,7 @@ export function GemeoDijitalPage() {
       </div>
 
       {/* ── Corpo ── */}
-      <div style={{ flex: 1, display: 'flex', minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', minHeight: 300, position: 'relative' }}>
 
         {/* Área holograma */}
         <div style={{

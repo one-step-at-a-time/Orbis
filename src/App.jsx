@@ -116,7 +116,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+      <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", height: "100vh", position: "relative", zIndex: 1 }}>
         <Spotlight className="z-0" fill="rgba(0, 240, 255, 0.06)" />
         {/* Holographic scanner line */}
         <div className="holographic-scanner" />
