@@ -121,7 +121,7 @@ export default function App() {
         {/* Holographic scanner line */}
         <div className="holographic-scanner" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
-        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto" }}>
+        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
@@ -129,6 +129,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, x: 8, filter: "blur(2px)" }}
               transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
             >
               <PageComponent />
             </motion.div>
