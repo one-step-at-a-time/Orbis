@@ -1,13 +1,14 @@
 // GÊMEO DIGITAL — Módulo de Saúde Holística
-// SVG holográfico + dados reais de player, missões e hábitos.
+// SVG holográfico + dados reais + análise IA inline.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Zap, HeartPulse, Cpu, X, ChevronRight, Activity, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
+import { Brain, Zap, HeartPulse, Cpu, X, ChevronRight, Activity, AlertTriangle, CheckCircle, TrendingUp, Sparkles, Loader } from 'lucide-react';
 import { CornerBrackets } from '../components/AceternityUI';
 import { usePlayer } from '../context/PlayerContext';
 import { useMissions } from '../context/MissionContext';
 import { useAppData } from '../context/DataContext';
+import { callAiProvider } from '../services/aiProviderService';
 
 // ─── Paleta de camadas ────────────────────────────────────────────────────────
 
@@ -23,6 +24,152 @@ const GROUP_META = {
   vitalidade: { label: 'Sistema de Vitalidade', icon: HeartPulse, color: '#00FF9D' },
   fisico:     { label: 'Sistema Físico',      icon: Zap,        color: '#FF2A4A' },
 };
+
+// ─── Helpers de IA ───────────────────────────────────────────────────────────
+
+function getStoredKey(name) {
+  try {
+    const raw = localStorage.getItem(name);
+    if (!raw) return '';
+    return JSON.parse(raw);
+  } catch { return raw || ''; }
+}
+
+function getAiConfig() {
+  return {
+    provider: getStoredKey('orbis_ai_provider') || 'gemini',
+    model:    getStoredKey('orbis_ai_model')    || 'gemini-2.5-flash',
+    key:      getStoredKey('orbis_gemini_key')
+           || getStoredKey('orbis_zhipu_key')
+           || getStoredKey('orbis_siliconflow_key')
+           || getStoredKey('orbis_openrouter_key'),
+  };
+}
+
+function buildHealthPrompt(group, data, playerLevel) {
+  const meta = GROUP_META[group];
+  const metricsText = data.metrics
+    .map(m => `- ${m.label}: ${m.value}%`)
+    .join('\n');
+  const missionText = data.mission
+    ? `Missão pendente: ${data.mission.label} (+${data.mission.xp} XP)`
+    : 'Todas as missões do sistema concluídas hoje.';
+
+  return `Analise o ${meta.label} do Caçador (Level ${playerLevel}) com base nos dados de hoje.
+
+STATUS: ${data.status.label}
+SCORE GERAL: ${data.score}/100
+
+MÉTRICAS:
+${metricsText}
+
+${missionText}
+
+Forneça uma análise direta (3-4 linhas): estado atual do sistema, impacto no progresso e uma recomendação específica e acionável para hoje. Sem asteriscos, sem markdown.`;
+}
+
+// ─── Componente: análise IA inline ────────────────────────────────────────────
+
+function AIInsightBlock({ group, data, playerLevel }) {
+  const [state, setState] = useState('idle'); // idle | loading | done | error | no_key
+  const [response, setResponse] = useState('');
+
+  const analyze = useCallback(async () => {
+    const { provider, model, key } = getAiConfig();
+    if (!key) { setState('no_key'); return; }
+
+    setState('loading');
+    try {
+      const prompt = buildHealthPrompt(group, data, playerLevel);
+      const messages = [{ tipo: 'usuario', mensagem: prompt }];
+      const result = await callAiProvider(provider, messages, key, { model });
+      setResponse(result);
+      setState('done');
+    } catch (err) {
+      setResponse(err.message || 'Falha na análise.');
+      setState('error');
+    }
+  }, [group, data, playerLevel]);
+
+  const color = GROUP_META[group].color;
+
+  if (state === 'idle') {
+    return (
+      <button
+        onClick={analyze}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '8px 12px',
+          background: `${color}08`,
+          border: `1px solid ${color}30`,
+          color, cursor: 'pointer', fontSize: 10,
+          fontFamily: 'var(--font-system)', letterSpacing: '0.12em',
+          transition: 'all 0.18s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = `${color}18`; e.currentTarget.style.boxShadow = `0 0 12px ${color}20`; }}
+        onMouseLeave={e => { e.currentTarget.style.background = `${color}08`; e.currentTarget.style.boxShadow = 'none'; }}
+      >
+        <Sparkles size={11}/>
+        ANALISAR COM NEURAL AI
+      </button>
+    );
+  }
+
+  if (state === 'loading') {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+        background: `${color}06`, border: `1px solid ${color}20`,
+        color: 'var(--text-dim)', fontSize: 10, fontFamily: 'var(--font-system)', letterSpacing: '0.1em',
+      }}>
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+          <Loader size={12} color={color}/>
+        </motion.div>
+        PROCESSANDO ANÁLISE...
+      </div>
+    );
+  }
+
+  if (state === 'no_key') {
+    return (
+      <div style={{ padding: '10px 12px', background: 'rgba(255,42,74,0.06)', border: '1px solid rgba(255,42,74,0.2)', fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+        Nenhuma chave de API configurada. Configure em Chat → Configurações para ativar a Neural AI.
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      style={{
+        padding: '12px', background: `${color}06`,
+        border: `1px solid ${color}25`,
+        position: 'relative',
+      }}
+    >
+      <CornerBrackets color={color + '50'} size={6} />
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+        <Sparkles size={10} color={color} opacity={0.7}/>
+        <span style={{ fontSize: 8, color, fontFamily: 'var(--font-system)', letterSpacing: '0.15em' }}>
+          NEURAL AI — ANÁLISE
+        </span>
+      </div>
+      <p style={{
+        fontSize: 11, color: state === 'error' ? '#FF2A4A' : 'var(--text-secondary)',
+        lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap',
+      }}>
+        {response}
+      </p>
+      <button
+        onClick={() => { setState('idle'); setResponse(''); }}
+        style={{ marginTop: 8, background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', fontSize: 9, fontFamily: 'var(--font-system)', letterSpacing: '0.1em', padding: 0 }}
+      >
+        ↩ nova análise
+      </button>
+    </motion.div>
+  );
+}
 
 // ─── Hook: processa dados reais dos contextos ─────────────────────────────────
 
@@ -318,9 +465,10 @@ function ScannerLine() {
 
 function AnalysisPanel({ group, healthData, onClose }) {
   if (!group) return null;
-  const meta   = GROUP_META[group];
-  const data   = healthData[group];
-  const Icon   = meta.icon;
+  const meta        = GROUP_META[group];
+  const data        = healthData[group];
+  const playerLevel = healthData.playerLevel;
+  const Icon        = meta.icon;
 
   return (
     <motion.div
@@ -468,6 +616,10 @@ function AnalysisPanel({ group, healthData, onClose }) {
             </div>
           </div>
         </div>
+
+        {/* ── Análise IA ── */}
+        <AIInsightBlock group={group} data={data} playerLevel={playerLevel} />
+
       </div>
 
       <div style={{
