@@ -1,398 +1,385 @@
-// GÊMEO DIGITAL — Saúde Holística
-// Módulo isolado: não modifica nenhum contexto global existente.
-// Integra-se ao roteador via App.jsx (page: 'gemeodigital').
+// GÊMEO DIGITAL — Módulo de Saúde Holística
+// SVG holográfico + CSS puro. Sem dependências externas de 3D.
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Brain, Zap, Shield, X, Send, ChevronRight,
-  Activity, Cpu, HeartPulse, AlertTriangle, Settings,
-  CheckCircle, Clock, Database,
-} from 'lucide-react';
-import { DigitalTwinScene } from '../components/3d/DigitalTwinScene';
-import { isSupabaseConfigured } from '../services/supabaseService';
+import { Brain, Zap, HeartPulse, Cpu, X, ChevronRight, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
 import { CornerBrackets } from '../components/AceternityUI';
 
-// ─── Configuração das camadas ─────────────────────────────────────────────────
+// ─── Paleta de camadas ────────────────────────────────────────────────────────
 
 const LAYERS = [
-  { id: 'all',        label: 'TODOS',      color: '#06b6d4',  icon: Cpu       },
-  { id: 'fisico',     label: 'FÍSICO',     color: '#ef4444',  icon: Zap       },
-  { id: 'neural',     label: 'NEURAL',     color: '#06b6d4',  icon: Brain     },
-  { id: 'vitalidade', label: 'VITALIDADE', color: '#00ff9d',  icon: HeartPulse },
+  { id: 'all',        label: 'TODOS',      color: '#00F0FF', icon: Cpu       },
+  { id: 'fisico',     label: 'FÍSICO',     color: '#FF2A4A', icon: Zap       },
+  { id: 'neural',     label: 'NEURAL',     color: '#00F0FF', icon: Brain     },
+  { id: 'vitalidade', label: 'VITALIDADE', color: '#00FF9D', icon: HeartPulse },
 ];
 
 const GROUP_META = {
   neural: {
     label: 'Sistema Neural',
     icon: Brain,
-    color: '#06b6d4',
-    description: 'Córtex pré-frontal, hipocampo e rede neural padrão.',
+    color: '#00F0FF',
+    description: 'Córtex pré-frontal, hipocampo e rede de modo padrão.',
   },
   vitalidade: {
     label: 'Sistema de Vitalidade',
     icon: HeartPulse,
-    color: '#00ff9d',
+    color: '#00FF9D',
     description: 'Cardiovascular, respiratório e homeostase metabólica.',
   },
   fisico: {
     label: 'Sistema Físico',
     icon: Zap,
-    color: '#ef4444',
+    color: '#FF2A4A',
     description: 'Musculatura esquelética, articulações e sistema locomotor.',
   },
 };
 
-// ─── Mock data para PASSO 2 ───────────────────────────────────────────────────
-
 const MOCK_ANALYSES = {
   neural: {
-    layer: 'neural',
     status: 'Sobrecarga Detectada',
-    statusColor: '#f59e0b',
+    statusColor: '#FFB800',
     insight: 'Fragmentação do ciclo de sono compromete consolidação de memória.',
     suggested_mission: { title: 'Dormir 8h ininterruptas', reward: '+2 INT' },
   },
   vitalidade: {
-    layer: 'vitalidade',
     status: 'Operacional',
-    statusColor: '#00ff9d',
+    statusColor: '#00FF9D',
     insight: 'Frequência cardíaca em repouso estável. Hidratação abaixo do ideal.',
     suggested_mission: { title: 'Beber 3L de água hoje', reward: '+2 VIT' },
   },
   fisico: {
-    layer: 'fisico',
     status: 'Recuperação Ativa',
-    statusColor: '#ef4444',
+    statusColor: '#FF2A4A',
     insight: 'Microlesões musculares indicam treino intenso. Proteína insuficiente.',
     suggested_mission: { title: 'Ingestão: 2g proteína/kg', reward: '+3 STR' },
   },
 };
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
+// ─── Silhueta SVG ─────────────────────────────────────────────────────────────
 
-/** Badge de status com cor dinâmica */
-function StatusBadge({ status, color }) {
+function HumanSilhouette({ activeLayer, hoveredGroup, onGroupClick, onGroupHover }) {
+  const isActive = (group) => activeLayer === 'all' || activeLayer === group;
+
+  const groupOpacity = (group) => {
+    if (!isActive(group)) return 0.08;
+    if (hoveredGroup === group) return 1;
+    return 0.55;
+  };
+
+  const groupColor = (group) => GROUP_META[group].color;
+
+  const groupFilter = (group) => {
+    if (!isActive(group)) return 'none';
+    const col = groupColor(group);
+    if (hoveredGroup === group)
+      return `drop-shadow(0 0 10px ${col}) drop-shadow(0 0 20px ${col}80)`;
+    return `drop-shadow(0 0 4px ${col}80)`;
+  };
+
+  const hitProps = (group) => ({
+    style: { cursor: 'pointer' },
+    onClick: () => onGroupClick(group),
+    onMouseEnter: () => onGroupHover(group),
+    onMouseLeave: () => onGroupHover(null),
+  });
+
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      padding: '3px 10px', borderRadius: 20,
-      background: `${color}15`, border: `1px solid ${color}40`,
-      color, fontSize: 10, fontFamily: 'var(--font-system)',
-      letterSpacing: '0.12em', fontWeight: 700,
-    }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
-      {status}
-    </span>
+    <svg
+      viewBox="0 0 160 440"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ width: '100%', height: '100%', maxWidth: 220, maxHeight: 480 }}
+    >
+      <defs>
+        <pattern id="scanlines" width="100%" height="3" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="160" y2="0" stroke="rgba(0,240,255,0.04)" strokeWidth="1"/>
+        </pattern>
+      </defs>
+
+      {/* ── NEURAL (cabeça + pescoço) ── */}
+      <g
+        style={{ opacity: groupOpacity('neural'), filter: groupFilter('neural'), transition: 'opacity 0.3s, filter 0.3s' }}
+        {...hitProps('neural')}
+      >
+        {/* Cabeça */}
+        <ellipse cx="80" cy="34" rx="28" ry="32" fill="none" stroke={groupColor('neural')} strokeWidth="1.8"/>
+        {/* Detalhe topo */}
+        <line x1="80" y1="2" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="1.2"/>
+        <line x1="60" y1="10" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="0.8" opacity="0.5"/>
+        <line x1="100" y1="10" x2="80" y2="8" stroke={groupColor('neural')} strokeWidth="0.8" opacity="0.5"/>
+        {/* Ponto HUD */}
+        <circle cx="80" cy="22" r="2.5" fill={groupColor('neural')} opacity="0.7"/>
+        <circle cx="80" cy="22" r="5" fill="none" stroke={groupColor('neural')} strokeWidth="0.6" opacity="0.4"/>
+        {/* Olhos */}
+        <rect x="64" y="34" width="10" height="4" rx="2" fill={groupColor('neural')} opacity="0.6"/>
+        <rect x="86" y="34" width="10" height="4" rx="2" fill={groupColor('neural')} opacity="0.6"/>
+        {/* Pescoço */}
+        <rect x="70" y="66" width="20" height="18" rx="2" fill="none" stroke={groupColor('neural')} strokeWidth="1.5"/>
+      </g>
+
+      {/* ── VITALIDADE (torso) ── */}
+      <g
+        style={{ opacity: groupOpacity('vitalidade'), filter: groupFilter('vitalidade'), transition: 'opacity 0.3s, filter 0.3s' }}
+        {...hitProps('vitalidade')}
+      >
+        {/* Ombros */}
+        <path d="M42 90 Q30 95 28 108 L36 110 Q44 96 58 92 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
+        <path d="M118 90 Q130 95 132 108 L124 110 Q116 96 102 92 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
+        {/* Torso */}
+        <path d="M58 86 L102 86 L108 140 L104 200 L56 200 L52 140 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.8"/>
+        {/* Costelas */}
+        {[100, 112, 124, 136].map((y, i) => (
+          <React.Fragment key={i}>
+            <line x1="58" y1={y} x2="76" y2={y + 2} stroke={groupColor('vitalidade')} strokeWidth="0.8" opacity="0.35"/>
+            <line x1="102" y1={y} x2="84" y2={y + 2} stroke={groupColor('vitalidade')} strokeWidth="0.8" opacity="0.35"/>
+          </React.Fragment>
+        ))}
+        {/* Coração */}
+        <path d="M72 110 Q72 104 78 104 Q84 104 84 110 Q84 116 78 122 Q72 116 72 110 Z"
+          fill={groupColor('vitalidade')} opacity="0.25" stroke={groupColor('vitalidade')} strokeWidth="1"/>
+        {/* Coluna */}
+        <line x1="80" y1="86" x2="80" y2="200" stroke={groupColor('vitalidade')} strokeWidth="0.8" strokeDasharray="4,4" opacity="0.3"/>
+        {/* Abdômen */}
+        <path d="M56 200 L104 200 L106 240 L54 240 Z" fill="none" stroke={groupColor('vitalidade')} strokeWidth="1.5"/>
+        {/* Grid abdominal */}
+        <line x1="68" y1="205" x2="68" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
+        <line x1="80" y1="205" x2="80" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
+        <line x1="92" y1="205" x2="92" y2="238" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
+        <line x1="56" y1="218" x2="104" y2="218" stroke={groupColor('vitalidade')} strokeWidth="0.6" opacity="0.2"/>
+      </g>
+
+      {/* ── FÍSICO (braços + pernas) ── */}
+      <g
+        style={{ opacity: groupOpacity('fisico'), filter: groupFilter('fisico'), transition: 'opacity 0.3s, filter 0.3s' }}
+        {...hitProps('fisico')}
+      >
+        {/* Braço esq. superior */}
+        <path d="M28 108 L20 108 L16 170 L28 170 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Braço esq. inferior */}
+        <path d="M18 170 L12 170 L10 230 L22 230 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Mão esq. */}
+        <rect x="9" y="230" width="14" height="12" rx="3" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
+        {/* Braço dir. superior */}
+        <path d="M132 108 L140 108 L144 170 L132 170 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Braço dir. inferior */}
+        <path d="M142 170 L148 170 L150 230 L138 230 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Mão dir. */}
+        <rect x="137" y="230" width="14" height="12" rx="3" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
+        {/* Quadril */}
+        <rect x="54" y="240" width="52" height="22" rx="2" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Coxa esq. */}
+        <path d="M54 262 L50 262 L48 340 L62 340 L64 262 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Perna esq. */}
+        <path d="M48 340 L44 340 L44 410 L62 410 L62 340 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Pé esq. */}
+        <path d="M44 408 L62 408 L64 422 L40 422 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
+        {/* Coxa dir. */}
+        <path d="M96 262 L106 262 L112 340 L98 340 L96 262 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Perna dir. */}
+        <path d="M98 340 L116 340 L116 410 L98 410 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.5"/>
+        {/* Pé dir. */}
+        <path d="M98 408 L116 408 L120 422 L96 422 Z" fill="none" stroke={groupColor('fisico')} strokeWidth="1.2"/>
+        {/* Joelhos */}
+        <circle cx="55" cy="344" r="5" fill="none" stroke={groupColor('fisico')} strokeWidth="1" opacity="0.5"/>
+        <circle cx="107" cy="344" r="5" fill="none" stroke={groupColor('fisico')} strokeWidth="1" opacity="0.5"/>
+      </g>
+
+      {/* Scan lines overlay */}
+      <rect x="0" y="0" width="160" height="440" fill="url(#scanlines)" pointerEvents="none" opacity="0.5"/>
+
+      {/* HUD cantos */}
+      <g opacity="0.25" pointerEvents="none">
+        <line x1="0" y1="0" x2="12" y2="0" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="0" y1="0" x2="0" y2="12" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="148" y1="0" x2="160" y2="0" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="160" y1="0" x2="160" y2="12" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="0" y1="428" x2="0" y2="440" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="0" y1="440" x2="12" y2="440" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="160" y1="428" x2="160" y2="440" stroke="#00F0FF" strokeWidth="1"/>
+        <line x1="148" y1="440" x2="160" y2="440" stroke="#00F0FF" strokeWidth="1"/>
+      </g>
+    </svg>
   );
 }
 
-/** Painel flutuante direito com análise do grupo clicado */
-function AnalysisPanel({ group, analysis, onClose }) {
+// ─── Scanner animado ──────────────────────────────────────────────────────────
+
+function ScannerLine() {
+  return (
+    <motion.div
+      style={{
+        position: 'absolute', left: 0, right: 0,
+        height: 2,
+        background: 'linear-gradient(90deg, transparent, rgba(0,240,255,0.7), transparent)',
+        boxShadow: '0 0 12px rgba(0,240,255,0.5)',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }}
+      animate={{ top: ['5%', '95%', '5%'] }}
+      transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+    />
+  );
+}
+
+// ─── Painel de análise ────────────────────────────────────────────────────────
+
+function AnalysisPanel({ group, onClose }) {
   if (!group) return null;
   const meta = GROUP_META[group];
-  if (!meta) return null;
-  const IconComponent = meta.icon;
+  const analysis = MOCK_ANALYSES[group];
+  const Icon = meta.icon;
 
   return (
     <motion.div
       key={group}
-      initial={{ x: 420, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 420, opacity: 0 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 24 }}
+      transition={{ duration: 0.22 }}
       style={{
-        position: 'absolute',
-        right: 0, top: 0, bottom: 0,
-        width: 380,
-        background: 'rgba(5,8,16,0.96)',
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        width: 280, background: 'rgba(0,4,5,0.97)',
         borderLeft: `1px solid ${meta.color}30`,
-        boxShadow: `-20px 0 60px rgba(0,0,0,0.6), inset 0 0 40px ${meta.color}05`,
         display: 'flex', flexDirection: 'column',
-        zIndex: 20,
-        backdropFilter: 'blur(20px)',
+        zIndex: 10, overflow: 'hidden',
       }}
     >
-      {/* Header do painel */}
+      <CornerBrackets color={meta.color + '60'} size={8} />
+
+      {/* Cabeçalho */}
       <div style={{
-        padding: '18px 20px 14px',
+        padding: '16px 16px 12px',
         borderBottom: `1px solid ${meta.color}20`,
-        background: `linear-gradient(135deg, ${meta.color}08, transparent)`,
-        position: 'relative',
+        display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        <CornerBrackets color={`${meta.color}60`} size={8} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-            background: `${meta.color}15`,
-            border: `1px solid ${meta.color}40`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 0 16px ${meta.color}30`,
-          }}>
-            <IconComponent size={16} color={meta.color} />
-          </div>
-          <div>
-            <div style={{ fontSize: 8, fontFamily: 'var(--font-system)', letterSpacing: '0.18em', color: 'var(--text-dim)', marginBottom: 2 }}>
-              SUBSISTEMA ATIVO
-            </div>
-            <div style={{
-              fontSize: 13, fontWeight: 700, color: meta.color,
-              fontFamily: 'var(--font-system)', letterSpacing: '0.06em',
-              textShadow: `0 0 12px ${meta.color}60`,
-            }}>
-              {meta.label}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{
-              marginLeft: 'auto', background: 'none', border: 'none',
-              color: 'var(--text-dim)', cursor: 'pointer', padding: 4,
-              borderRadius: 6, transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
-          >
-            <X size={16} />
-          </button>
+        <div style={{
+          width: 32, height: 32,
+          clipPath: 'polygon(4px 0%, 100% 0%, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0% 100%, 0% 4px)',
+          background: `${meta.color}15`, border: `1px solid ${meta.color}40`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={16} color={meta.color}/>
         </div>
-
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-          {meta.description}
-        </p>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em' }}>
+            ANÁLISE DE SISTEMA
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: meta.color, fontFamily: 'var(--font-system)', letterSpacing: '0.08em' }}>
+            {meta.label.toUpperCase()}
+          </div>
+        </div>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4 }}>
+          <X size={14}/>
+        </button>
       </div>
 
-      {/* Corpo do painel */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Conteúdo */}
+      <div style={{ flex: 1, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto' }}>
 
-        {analysis ? (
-          <>
-            {/* Status */}
-            <div>
-              <div style={{ fontSize: 8, fontFamily: 'var(--font-system)', letterSpacing: '0.16em', color: 'var(--text-dim)', marginBottom: 8 }}>
-                ▸ STATUS DO SUBSISTEMA
-              </div>
-              <StatusBadge status={analysis.status} color={analysis.statusColor} />
-            </div>
-
-            {/* Análise */}
-            <div style={{
-              padding: '12px 14px',
-              background: `${meta.color}06`,
-              border: `1px solid ${meta.color}20`,
-              borderRadius: 8,
-              position: 'relative',
-            }}>
-              <CornerBrackets color={`${meta.color}30`} size={6} />
-              <div style={{ fontSize: 8, fontFamily: 'var(--font-system)', letterSpacing: '0.16em', color: meta.color, marginBottom: 6, opacity: 0.8 }}>
-                ▸ ANÁLISE DE IA
-              </div>
-              <p style={{ fontSize: 12, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>
-                {analysis.insight}
-              </p>
-            </div>
-
-            {/* Missão sugerida */}
-            {analysis.suggested_mission && (
-              <div style={{
-                padding: '12px 14px',
-                background: 'rgba(59,89,255,0.06)',
-                border: '1px solid rgba(59,89,255,0.2)',
-                borderRadius: 8,
-              }}>
-                <div style={{ fontSize: 8, fontFamily: 'var(--font-system)', letterSpacing: '0.16em', color: 'var(--primary)', marginBottom: 8 }}>
-                  ▸ MISSÃO CORRETIVA SUGERIDA
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 12, color: 'var(--text)', flex: 1 }}>
-                    {analysis.suggested_mission.title}
-                  </span>
-                  <span style={{
-                    fontSize: 10, fontFamily: 'var(--font-system)', fontWeight: 700,
-                    color: '#00ff9d', background: 'rgba(0,255,157,0.1)',
-                    border: '1px solid rgba(0,255,157,0.25)',
-                    padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap',
-                  }}>
-                    {analysis.suggested_mission.reward}
-                  </span>
-                </div>
-
-                {/* Botão — reservado para integração RPG (PASSO 4) */}
-                <button
-                  style={{
-                    marginTop: 10, width: '100%', padding: '8px 0',
-                    borderRadius: 6, cursor: 'pointer',
-                    background: 'rgba(59,89,255,0.12)',
-                    border: '1px solid rgba(59,89,255,0.3)',
-                    color: 'var(--primary)',
-                    fontSize: 10, fontFamily: 'var(--font-system)',
-                    letterSpacing: '0.1em', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    transition: 'all 0.18s',
-                    opacity: 0.6,
-                  }}
-                  title="Integração RPG disponível no PASSO 4"
-                  onClick={() => {
-                    // Emite evento customizado — sem tocar em contextos globais
-                    window.dispatchEvent(new CustomEvent('orbis:suggested-mission', {
-                      detail: analysis.suggested_mission,
-                    }));
-                  }}
-                >
-                  <CheckCircle size={11} />
-                  ACEITAR MISSÃO
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          /* Estado vazio — aguardando análise */
-          <div style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 12, padding: '40px 20px', textAlign: 'center',
+        {/* Status */}
+        <div>
+          <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
+            STATUS OPERACIONAL
+          </div>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 10px',
+            background: `${analysis.statusColor}10`,
+            border: `1px solid ${analysis.statusColor}40`,
+            color: analysis.statusColor,
+            fontSize: 10, fontFamily: 'var(--font-system)', letterSpacing: '0.1em',
           }}>
-            <Activity size={28} color={`${meta.color}60`} />
-            <div style={{ fontSize: 11, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', lineHeight: 1.6 }}>
-              Nenhuma análise disponível.{'\n'}
-              Digite um log no terminal e pressione ENTER.
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: analysis.statusColor, boxShadow: `0 0 6px ${analysis.statusColor}` }}/>
+            {analysis.status}
+          </span>
+        </div>
+
+        {/* Descrição */}
+        <div>
+          <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
+            DIAGNÓSTICO
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            {meta.description}
+          </p>
+        </div>
+
+        {/* Insight */}
+        <div style={{ padding: '10px 12px', background: `${meta.color}06`, border: `1px solid ${meta.color}20` }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <AlertTriangle size={12} color={meta.color} style={{ marginTop: 2, flexShrink: 0 }}/>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+              {analysis.insight}
+            </p>
+          </div>
+        </div>
+
+        {/* Missão sugerida */}
+        {analysis.suggested_mission && (
+          <div>
+            <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 6 }}>
+              MISSÃO SUGERIDA
+            </div>
+            <div style={{
+              padding: '10px 12px',
+              background: 'rgba(0,4,5,0.8)',
+              border: '1px solid rgba(0,240,255,0.12)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <CheckCircle size={12} color="rgba(0,240,255,0.5)"/>
+                <span style={{ fontSize: 11, color: 'var(--text-primary)' }}>{analysis.suggested_mission.title}</span>
+              </div>
+              <span style={{
+                fontSize: 10, fontFamily: 'var(--font-system)', color: '#00FF9D',
+                padding: '2px 8px', background: 'rgba(0,255,157,0.08)', border: '1px solid rgba(0,255,157,0.2)',
+              }}>
+                {analysis.suggested_mission.reward}
+              </span>
             </div>
           </div>
         )}
+
+        {/* Métricas */}
+        <div>
+          <div style={{ fontSize: 8, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.15em', marginBottom: 8 }}>
+            MÉTRICAS
+          </div>
+          {[
+            { label: 'Integridade', value: group === 'fisico' ? 72 : group === 'neural' ? 65 : 88 },
+            { label: 'Eficiência',  value: group === 'fisico' ? 81 : group === 'neural' ? 57 : 91 },
+            { label: 'Recuperação', value: group === 'fisico' ? 44 : group === 'neural' ? 70 : 95 },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.05em' }}>{label}</span>
+                <span style={{ fontSize: 10, color: meta.color, fontFamily: 'var(--font-system)' }}>{value}%</span>
+              </div>
+              <div style={{ height: 2, background: 'rgba(255,255,255,0.05)' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${value}%` }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                  style={{ height: '100%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Footer */}
+      {/* Rodapé */}
       <div style={{
-        padding: '10px 20px',
+        padding: '10px 16px',
         borderTop: `1px solid ${meta.color}15`,
         display: 'flex', alignItems: 'center', gap: 6,
       }}>
-        <Clock size={10} color="var(--text-dim)" />
-        <span style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: 'var(--font-system)' }}>
-          {new Date().toLocaleString('pt-BR')}
+        <Activity size={10} color={meta.color} style={{ opacity: 0.6 }}/>
+        <span style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', letterSpacing: '0.1em' }}>
+          SINCRONIZADO EM TEMPO REAL
         </span>
       </div>
-    </motion.div>
-  );
-}
-
-/** Modal de configuração do Supabase */
-function SupabaseSetupModal({ onClose, onSave }) {
-  const [url, setUrl] = useState(localStorage.getItem('orbis_supabase_url') || '');
-  const [key, setKey] = useState(localStorage.getItem('orbis_supabase_anon_key') || '');
-
-  const handleSave = () => {
-    if (url.trim() && key.trim()) {
-      localStorage.setItem('orbis_supabase_url', url.trim());
-      localStorage.setItem('orbis_supabase_anon_key', key.trim());
-      onSave();
-      onClose();
-    }
-  };
-
-  const inputStyle = {
-    width: '100%', padding: '8px 12px',
-    background: 'rgba(6,182,212,0.05)',
-    border: '1px solid rgba(6,182,212,0.25)',
-    borderRadius: 6, color: 'var(--text)',
-    fontSize: 11, fontFamily: 'var(--font-system)',
-    outline: 'none', boxSizing: 'border-box',
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
-      }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: 440, padding: 28,
-          background: 'rgba(5,8,16,0.98)',
-          border: '1px solid rgba(6,182,212,0.3)',
-          borderRadius: 12,
-          boxShadow: '0 0 40px rgba(6,182,212,0.15), 0 20px 60px rgba(0,0,0,0.6)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <Database size={18} color="#06b6d4" />
-          <h3 style={{ fontFamily: 'var(--font-system)', fontSize: 14, fontWeight: 700, color: '#06b6d4', letterSpacing: '0.08em', margin: 0 }}>
-            CONFIGURAR SUPABASE
-          </h3>
-          <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.5 }}>
-          Configure as credenciais do Supabase para salvar seus logs biométricos na nuvem.
-          As chaves são armazenadas no localStorage, consistente com as demais API keys do app.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-          <div>
-            <label style={{ fontSize: 9, fontFamily: 'var(--font-system)', color: 'var(--text-dim)', letterSpacing: '0.16em', display: 'block', marginBottom: 5 }}>
-              PROJECT URL
-            </label>
-            <input
-              style={inputStyle}
-              placeholder="https://xxxx.supabase.co"
-              value={url}
-              onChange={e => setUrl(e.target.value)}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: 9, fontFamily: 'var(--font-system)', color: 'var(--text-dim)', letterSpacing: '0.16em', display: 'block', marginBottom: 5 }}>
-              ANON PUBLIC KEY
-            </label>
-            <input
-              style={inputStyle}
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-              value={key}
-              onChange={e => setKey(e.target.value)}
-              type="password"
-            />
-          </div>
-        </div>
-
-        <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', marginBottom: 16, padding: '8px 12px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 6 }}>
-          <strong style={{ color: '#f59e0b' }}>SQL necessário no Supabase:</strong>{'\n'}
-          <code style={{ fontSize: 9, display: 'block', marginTop: 4, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-            CREATE TABLE biometric_logs ({'\n'}
-            {'  '}id UUID DEFAULT gen_random_uuid() PRIMARY KEY,{'\n'}
-            {'  '}log_text TEXT NOT NULL,{'\n'}
-            {'  '}ai_analysis_json JSONB,{'\n'}
-            {'  '}created_at TIMESTAMPTZ DEFAULT NOW(){'\n'}
-            );
-          </code>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={!url.trim() || !key.trim()}
-          style={{
-            width: '100%', padding: '10px 0',
-            borderRadius: 8, cursor: url && key ? 'pointer' : 'not-allowed',
-            background: url && key ? 'linear-gradient(135deg, var(--primary), var(--accent))' : 'rgba(255,255,255,0.05)',
-            border: 'none', color: 'white',
-            fontSize: 11, fontFamily: 'var(--font-system)',
-            fontWeight: 700, letterSpacing: '0.1em',
-            transition: 'all 0.18s',
-          }}
-        >
-          SALVAR CREDENCIAIS
-        </button>
-      </motion.div>
     </motion.div>
   );
 }
@@ -401,114 +388,38 @@ function SupabaseSetupModal({ onClose, onSave }) {
 
 export function GemeoDijitalPage() {
   const [activeLayer, setActiveLayer] = useState('all');
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
   const [hoveredGroup, setHoveredGroup] = useState(null);
-  const [terminalInput, setTerminalInput] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
-  const [supabaseReady, setSupabaseReady] = useState(isSupabaseConfigured());
-  const [cursorStyle, setCursorStyle] = useState('default');
-  const [logs, setLogs] = useState([]);
-  const terminalRef = useRef(null);
-  const inputRef = useRef(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [scanKey, setScanKey] = useState(0);
 
-  // Lida com o clique em partes do corpo 3D
-  const handleBodyClick = useCallback((group) => {
-    setSelectedGroup(group);
-    // Usa mock data por enquanto (PASSO 4 substituirá por dados reais da IA)
-    setAnalysis(MOCK_ANALYSES[group] || null);
-  }, []);
+  useEffect(() => {
+    setScanKey(k => k + 1);
+    setSelectedGroup(null);
+  }, [activeLayer]);
 
-  // Hover do cursor para mudar estilo
-  const handleHoverChange = useCallback((group) => {
-    setHoveredGroup(group);
-    setCursorStyle(group ? 'pointer' : 'default');
-  }, []);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, background: '#000000' }}>
 
-  // Submissão do terminal (PASSO 4 substituirá pelo fluxo real de IA)
-  const handleTerminalSubmit = useCallback(async () => {
-    const text = terminalInput.trim();
-    if (!text || isAnalyzing) return;
-
-    setIsAnalyzing(true);
-    setTerminalInput('');
-
-    // Adiciona ao histórico local
-    const entry = { text, timestamp: new Date().toISOString(), id: Date.now() };
-    setLogs(prev => [entry, ...prev].slice(0, 20));
-
-    // Simula processamento (substituído por IA real no PASSO 4)
-    await new Promise(r => setTimeout(r, 1200));
-
-    // Mock: detecta keywords simples para escolher o grupo
-    let mockGroup = 'neural';
-    const lower = text.toLowerCase();
-    if (lower.match(/treino|muscula|perna|bra|corri|academia|força/)) mockGroup = 'fisico';
-    else if (lower.match(/coração|pressão|sono|respirar|cansar|energia|água/)) mockGroup = 'vitalidade';
-
-    const mockAnalysis = MOCK_ANALYSES[mockGroup];
-    setSelectedGroup(mockGroup);
-    setAnalysis(mockAnalysis);
-    setIsAnalyzing(false);
-  }, [terminalInput, isAnalyzing]);
-
-  // Focar no input ao montar
-  useEffect(() => { inputRef.current?.focus(); }, []);
-
-  return createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        left: 240,
-        top: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 10,
-        overflow: 'hidden',
-        background: 'radial-gradient(ellipse at 50% 40%, rgba(6,182,212,0.04) 0%, #050508 60%)',
-        cursor: cursorStyle,
-      }}
-    >
-      {/* ── Canvas 3D (z:0 — fundo) ──────────────────────────────── */}
-      <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 0 }}>
-        <DigitalTwinScene
-          activeLayer={activeLayer}
-          hoveredGroup={hoveredGroup}
-          onBodyClick={handleBodyClick}
-          onHoverChange={handleHoverChange}
-        />
-      </div>
-
-      {/* ── UI Overlay (z:1 — sobre o canvas) ────────────────────── */}
-      <div
-        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 1, pointerEvents: 'none' }}
-      >
-        {/* HEADER — Filtros de Camada */}
-        <div
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0,
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '12px 20px',
-            background: 'linear-gradient(180deg, rgba(5,8,16,0.96) 0%, transparent 100%)',
-            pointerEvents: 'auto', zIndex: 10,
-          }}
-        >
-          {/* Título */}
-          <div style={{ marginRight: 8 }}>
-            <div style={{ fontSize: 8, fontFamily: 'var(--font-system)', letterSpacing: '0.2em', color: 'var(--text-dim)' }}>
-              MÓDULO
-            </div>
-            <div style={{ fontSize: 12, fontFamily: 'var(--font-system)', fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em', textShadow: '0 0 12px rgba(6,182,212,0.5)' }}>
-              GÊMEO DIGITAL
-            </div>
+      {/* ── Cabeçalho ── */}
+      <div style={{
+        padding: '12px 20px',
+        borderBottom: '1px solid rgba(0,240,255,0.1)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <div>
+          <div style={{ fontSize: 8, color: 'rgba(0,240,255,0.4)', fontFamily: 'var(--font-system)', letterSpacing: '0.2em' }}>
+            MÓDULO
           </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#00F0FF', fontFamily: 'var(--font-system)', letterSpacing: '0.15em' }}>
+            GÊMEO DIGITAL
+          </div>
+        </div>
 
-          <div style={{ width: 1, height: 32, background: 'rgba(6,182,212,0.2)', margin: '0 6px' }} />
-
-          {/* Botões de filtro */}
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 6 }}>
           {LAYERS.map(layer => {
-            const IconComp = layer.icon;
+            const Icon = layer.icon;
             const isActive = activeLayer === layer.id;
             return (
               <button
@@ -516,151 +427,114 @@ export function GemeoDijitalPage() {
                 onClick={() => setActiveLayer(layer.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '5px 12px',
-                  borderRadius: 6, cursor: 'pointer',
-                  border: `1px solid ${isActive ? layer.color + '60' : 'rgba(255,255,255,0.06)'}`,
-                  background: isActive ? `${layer.color}15` : 'rgba(255,255,255,0.02)',
+                  padding: '5px 10px',
+                  background: isActive ? `${layer.color}15` : 'transparent',
+                  border: `1px solid ${isActive ? layer.color + '60' : 'rgba(0,240,255,0.12)'}`,
                   color: isActive ? layer.color : 'var(--text-dim)',
-                  fontSize: 9, fontFamily: 'var(--font-system)', fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  boxShadow: isActive ? `0 0 12px ${layer.color}30` : 'none',
+                  cursor: 'pointer', fontSize: 9,
+                  fontFamily: 'var(--font-system)', letterSpacing: '0.12em',
                   transition: 'all 0.18s',
+                  boxShadow: isActive ? `0 0 10px ${layer.color}20` : 'none',
                 }}
               >
-                <IconComp size={11} />
+                <Icon size={11}/>
                 {layer.label}
               </button>
             );
           })}
-
-          {/* Espaçador */}
-          <div style={{ flex: 1 }} />
-
-          {/* Botão configurações Supabase */}
-          <button
-            onClick={() => setShowSetup(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px', borderRadius: 6, cursor: 'pointer',
-              border: `1px solid ${supabaseReady ? 'rgba(0,255,157,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              background: supabaseReady ? 'rgba(0,255,157,0.06)' : 'rgba(255,255,255,0.02)',
-              color: supabaseReady ? '#00ff9d' : 'var(--text-dim)',
-              fontSize: 9, fontFamily: 'var(--font-system)',
-              transition: 'all 0.18s',
-            }}
-            title="Configurar Supabase"
-          >
-            <Database size={11} />
-            {supabaseReady ? 'DB OK' : 'DB —'}
-          </button>
         </div>
+      </div>
 
-        {/* INDICADOR CENTRAL — instrução ao usuário */}
-        {!selectedGroup && (
-          <div
-            style={{
-              position: 'absolute', bottom: 100, left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '7px 16px',
-              background: 'rgba(5,8,16,0.75)',
-              border: '1px solid rgba(6,182,212,0.15)',
-              borderRadius: 20,
-              pointerEvents: 'none',
-            }}
-          >
-            <ChevronRight size={11} color="rgba(6,182,212,0.5)" />
-            <span style={{ fontSize: 10, color: 'rgba(6,182,212,0.5)', fontFamily: 'var(--font-system)', letterSpacing: '0.12em' }}>
+      {/* ── Corpo ── */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+
+        {/* Área holograma */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative', padding: 24,
+        }}>
+          {/* Grid de fundo */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundImage: `
+              linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            pointerEvents: 'none',
+          }}/>
+
+          {/* Glow base */}
+          <div style={{
+            position: 'absolute', bottom: 48, left: '50%', transform: 'translateX(-50%)',
+            width: 140, height: 20,
+            background: 'radial-gradient(ellipse, rgba(0,240,255,0.15), transparent 70%)',
+            pointerEvents: 'none',
+          }}/>
+
+          {/* Scanner + Silhueta */}
+          <div style={{ position: 'relative', height: '85%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ScannerLine key={scanKey} />
+            <HumanSilhouette
+              activeLayer={activeLayer}
+              hoveredGroup={hoveredGroup}
+              onGroupClick={(group) => setSelectedGroup(s => s === group ? null : group)}
+              onGroupHover={setHoveredGroup}
+            />
+          </div>
+
+          {/* Dica */}
+          {!selectedGroup && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              style={{
+                position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 9, color: 'rgba(0,240,255,0.35)',
+                fontFamily: 'var(--font-system)', letterSpacing: '0.12em', whiteSpace: 'nowrap',
+              }}
+            >
+              <ChevronRight size={10}/>
               CLIQUE EM UMA REGIÃO DO HOLOGRAMA
-            </span>
-          </div>
-        )}
-
-        {/* TERMINAL INFERIOR */}
-        <div
-          style={{
-            position: 'absolute', bottom: 0, left: 0,
-            right: selectedGroup ? 380 : 0,
-            padding: '10px 16px',
-            background: 'rgba(5,8,16,0.94)',
-            borderTop: '1px solid rgba(6,182,212,0.2)',
-            display: 'flex', alignItems: 'center', gap: 10,
-            pointerEvents: 'auto', zIndex: 10,
-            transition: 'right 0.3s ease',
-          }}
-        >
-          {/* Prompt label */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: isAnalyzing ? '#f59e0b' : '#06b6d4', boxShadow: `0 0 6px ${isAnalyzing ? '#f59e0b' : '#06b6d4'}`, animation: 'system-pulse 2s ease-in-out infinite' }} />
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-system)', color: isAnalyzing ? '#f59e0b' : '#06b6d4', letterSpacing: '0.12em', fontWeight: 700 }}>
-              {isAnalyzing ? 'PROCESSANDO...' : 'NEURAL >'}
-            </span>
-          </div>
-
-          {/* Input */}
-          <input
-            ref={inputRef}
-            value={terminalInput}
-            onChange={e => setTerminalInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleTerminalSubmit(); }}
-            disabled={isAnalyzing}
-            placeholder="TRANSMIT NEURAL MESSAGE... (ex: dormi 4h, treinei perna, comi lixo)"
-            style={{
-              flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: 'var(--text)', fontFamily: 'var(--font-system)', fontSize: 12,
-              caretColor: '#06b6d4',
-              opacity: isAnalyzing ? 0.4 : 1,
-            }}
-          />
-
-          {/* Botão enviar */}
-          <button
-            onClick={handleTerminalSubmit}
-            disabled={!terminalInput.trim() || isAnalyzing}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 12px', borderRadius: 5, cursor: terminalInput.trim() ? 'pointer' : 'not-allowed',
-              background: terminalInput.trim() ? 'rgba(6,182,212,0.15)' : 'transparent',
-              border: `1px solid ${terminalInput.trim() ? 'rgba(6,182,212,0.4)' : 'transparent'}`,
-              color: terminalInput.trim() ? '#06b6d4' : 'var(--text-dim)',
-              fontSize: 9, fontFamily: 'var(--font-system)', fontWeight: 700, letterSpacing: '0.1em',
-              transition: 'all 0.18s',
-            }}
-          >
-            <Send size={11} />
-            SEND
-          </button>
-
-          {/* Histórico de logs */}
-          {logs.length > 0 && (
-            <div style={{ fontSize: 9, color: 'var(--text-dim)', fontFamily: 'var(--font-system)', flexShrink: 0 }}>
-              {logs.length} LOG{logs.length > 1 ? 'S' : ''}
-            </div>
+            </motion.div>
           )}
+
+          {/* Label hover */}
+          <AnimatePresence>
+            {hoveredGroup && (
+              <motion.div
+                key={hoveredGroup}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                style={{
+                  position: 'absolute', top: 20,
+                  padding: '4px 12px',
+                  background: `${GROUP_META[hoveredGroup].color}10`,
+                  border: `1px solid ${GROUP_META[hoveredGroup].color}40`,
+                  color: GROUP_META[hoveredGroup].color,
+                  fontSize: 10, fontFamily: 'var(--font-system)', letterSpacing: '0.15em',
+                  pointerEvents: 'none',
+                }}
+              >
+                {GROUP_META[hoveredGroup].label.toUpperCase()}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* PAINEL DIREITO — análise animada */}
+        {/* Painel lateral */}
         <AnimatePresence>
           {selectedGroup && (
             <AnalysisPanel
               group={selectedGroup}
-              analysis={analysis}
               onClose={() => setSelectedGroup(null)}
             />
           )}
         </AnimatePresence>
       </div>
-
-      {/* Modal de setup do Supabase */}
-      <AnimatePresence>
-        {showSetup && (
-          <SupabaseSetupModal
-            onClose={() => setShowSetup(false)}
-            onSave={() => setSupabaseReady(true)}
-          />
-        )}
-      </AnimatePresence>
-    </div>,
-    document.body
+    </div>
   );
 }
