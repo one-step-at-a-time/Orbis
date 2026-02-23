@@ -3,12 +3,24 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
     MOCK_TASKS, MOCK_HABITS, MOCK_PROJECTS, MOCK_REMINDERS, MOCK_FINANCES
 } from '../utils/mockData';
+import {
+    isSupabaseConfigured,
+    syncTask, deleteTaskSupabase,
+    syncHabit, deleteHabitSupabase,
+    syncFinance, deleteFinanceSupabase,
+    syncProject, deleteProjectSupabase,
+    syncReminder, deleteReminderSupabase,
+} from '../services/supabaseService';
 
 const DataContext = createContext(null);
 
-// Gera um ID único usando a API nativa do navegador
 function newId() {
     return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+// Fire-and-forget: chama fn assíncrona sem bloquear a UI
+function bg(fn) {
+    if (isSupabaseConfigured()) fn().catch(console.error);
 }
 
 export function DataProvider({ children }) {
@@ -31,38 +43,101 @@ export function DataProvider({ children }) {
     const [reminders, setReminders] = useLocalStorage('orbis_reminders', MOCK_REMINDERS);
     const [finances, setFinances] = useLocalStorage('orbis_finances', MOCK_FINANCES);
 
-    // ── Tasks ──────────────────────────────────────────────────────────────
-    // Usar updater function (prev =>) para evitar closures stale
-    const addTask = (task) => setTasks(prev => [...prev, { ...task, id: newId() }]);
-    const updateTask = (id, updates) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-    const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
+    // ── Tasks ──────────────────────────────────────────────────────────────────
+    const addTask = (task) => {
+        const id = newId();
+        const newTask = { status: 'pendente', ...task, id };
+        setTasks(prev => [...prev, newTask]);
+        bg(() => syncTask(newTask));
+    };
 
-    // ── Habits ─────────────────────────────────────────────────────────────
-    const addHabit = (habit) => setHabits(prev => [...prev, { ...habit, id: newId(), logs: [] }]);
-    const deleteHabit = (id) => setHabits(prev => prev.filter(h => h.id !== id));
+    const updateTask = (id, updates) => {
+        setTasks(prev => prev.map(t => {
+            if (t.id !== id) return t;
+            const updated = { ...t, ...updates };
+            bg(() => syncTask(updated));
+            return updated;
+        }));
+    };
+
+    const deleteTask = (id) => {
+        setTasks(prev => prev.filter(t => t.id !== id));
+        bg(() => deleteTaskSupabase(id));
+    };
+
+    // ── Habits ─────────────────────────────────────────────────────────────────
+    const addHabit = (habit) => {
+        const id = newId();
+        const newHabit = { icone: '✨', metaMensal: 30, ...habit, id, logs: [] };
+        setHabits(prev => [...prev, newHabit]);
+        bg(() => syncHabit(newHabit));
+    };
+
+    const deleteHabit = (id) => {
+        setHabits(prev => prev.filter(h => h.id !== id));
+        bg(() => deleteHabitSupabase(id));
+    };
+
     const addHabitLog = (habitId, date) => {
         setHabits(prev => prev.map(h => {
             if (h.id !== habitId) return h;
             const hasDate = h.logs.some(l => l.data === date);
-            return {
+            const updated = {
                 ...h,
                 logs: hasDate ? h.logs.filter(l => l.data !== date) : [...h.logs, { data: date }]
             };
+            bg(() => syncHabit(updated));
+            return updated;
         }));
     };
 
-    // ── Projects ───────────────────────────────────────────────────────────
-    const addProject = (project) => setProjects(prev => [...prev, { ...project, id: newId(), status: "ativo", totalTarefas: 0, tarefasConcluidas: 0 }]);
-    const updateProject = (id, updates) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    const deleteProject = (id) => setProjects(prev => prev.filter(p => p.id !== id));
+    // ── Projects ───────────────────────────────────────────────────────────────
+    const addProject = (project) => {
+        const id = newId();
+        const newProject = { cor: '#06b6d4', status: 'ativo', totalTarefas: 0, tarefasConcluidas: 0, ...project, id };
+        setProjects(prev => [...prev, newProject]);
+        bg(() => syncProject(newProject));
+    };
 
-    // ── Reminders ──────────────────────────────────────────────────────────
-    const addReminder = (reminder) => setReminders(prev => [...prev, { ...reminder, id: newId() }]);
-    const deleteReminder = (id) => setReminders(prev => prev.filter(r => r.id !== id));
+    const updateProject = (id, updates) => {
+        setProjects(prev => prev.map(p => {
+            if (p.id !== id) return p;
+            const updated = { ...p, ...updates };
+            bg(() => syncProject(updated));
+            return updated;
+        }));
+    };
 
-    // ── Finances ───────────────────────────────────────────────────────────
-    const addFinance = (entry) => setFinances(prev => [...prev, { ...entry, id: newId() }]);
-    const deleteFinance = (id) => setFinances(prev => prev.filter(f => f.id !== id));
+    const deleteProject = (id) => {
+        setProjects(prev => prev.filter(p => p.id !== id));
+        bg(() => deleteProjectSupabase(id));
+    };
+
+    // ── Reminders ──────────────────────────────────────────────────────────────
+    const addReminder = (reminder) => {
+        const id = newId();
+        const newReminder = { ...reminder, id };
+        setReminders(prev => [...prev, newReminder]);
+        bg(() => syncReminder(newReminder));
+    };
+
+    const deleteReminder = (id) => {
+        setReminders(prev => prev.filter(r => r.id !== id));
+        bg(() => deleteReminderSupabase(id));
+    };
+
+    // ── Finances ───────────────────────────────────────────────────────────────
+    const addFinance = (entry) => {
+        const id = newId();
+        const newEntry = { ...entry, id };
+        setFinances(prev => [...prev, newEntry]);
+        bg(() => syncFinance(newEntry));
+    };
+
+    const deleteFinance = (id) => {
+        setFinances(prev => prev.filter(f => f.id !== id));
+        bg(() => deleteFinanceSupabase(id));
+    };
 
     return (
         <DataContext.Provider value={{
@@ -76,7 +151,6 @@ export function DataProvider({ children }) {
         </DataContext.Provider>
     );
 }
-
 
 export function useAppData() {
     const context = useContext(DataContext);

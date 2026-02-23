@@ -1,3 +1,79 @@
+import { fetchAiContextSnapshot, isSupabaseConfigured } from './supabaseService';
+import { formatPatterns } from './patternService';
+
+// Formata o snapshot do Supabase em texto compacto para o system prompt
+async function buildLiveContext() {
+    if (!isSupabaseConfigured()) return '';
+    try {
+        const snap = await fetchAiContextSnapshot();
+        if (!snap) return '';
+
+        const lines = [];
+
+        if (snap.tasks.length > 0) {
+            lines.push('MISSÕES ATIVAS:');
+            snap.tasks.forEach(t => {
+                const prazo = t.data_prazo ? ` | prazo ${t.data_prazo}` : '';
+                lines.push(`- [${t.prioridade?.toUpperCase() || 'MEDIA'}] ${t.titulo} — ${t.status}${prazo}`);
+            });
+        }
+
+        if (snap.projects.length > 0) {
+            lines.push('PROJETOS EM CURSO:');
+            snap.projects.forEach(p => lines.push(`- ${p.titulo} (${p.status})`));
+        }
+
+        if (snap.reminders.length > 0) {
+            lines.push('LEMBRETES PENDENTES:');
+            snap.reminders.forEach(r => {
+                const dt = r.data_hora ? ` — ${new Date(r.data_hora).toLocaleString('pt-BR')}` : '';
+                lines.push(`- [${r.importancia?.toUpperCase()}] ${r.titulo}${dt}`);
+            });
+        }
+
+        if (snap.finances.length > 0) {
+            const receitas = snap.finances.filter(f => f.tipo === 'receita').reduce((s, f) => s + Number(f.valor), 0);
+            const despesas = snap.finances.filter(f => f.tipo === 'despesa').reduce((s, f) => s + Number(f.valor), 0);
+            lines.push(`FINANÇAS (últimos 30 dias): receitas R$${receitas.toFixed(2)} | despesas R$${despesas.toFixed(2)} | saldo R$${(receitas - despesas).toFixed(2)}`);
+            const cats = {};
+            snap.finances.filter(f => f.tipo === 'despesa').forEach(f => {
+                const c = f.categoria || 'outros';
+                cats[c] = (cats[c] || 0) + Number(f.valor);
+            });
+            const topCats = Object.entries(cats).sort((a, b) => b[1] - a[1]).slice(0, 3);
+            if (topCats.length) lines.push('Top gastos: ' + topCats.map(([c, v]) => `${c} R$${v.toFixed(2)}`).join(' | '));
+        }
+
+        if (snap.habits.length > 0) {
+            lines.push('HÁBITOS:');
+            snap.habits.forEach(h => {
+                const logs = h.habit_logs || [];
+                const thisMonth = logs.filter(l => l.date?.startsWith(snap.today.slice(0, 7))).length;
+                lines.push(`- ${h.icone || '✨'} ${h.titulo}: ${thisMonth} vezes este mês`);
+            });
+        }
+
+        if (snap.healthLogs.length > 0) {
+            lines.push('SAÚDE (últimos 7 dias):');
+            snap.healthLogs.forEach(l => {
+                const parts = [];
+                if (l.sleep_hours != null) parts.push(`sono ${l.sleep_hours}h`);
+                if (l.energy != null) parts.push(`energia ${l.energy}/5`);
+                if (l.weight != null) parts.push(`peso ${l.weight}kg`);
+                if (parts.length) lines.push(`- ${l.date}: ${parts.join(' | ')}`);
+            });
+        }
+
+        const patternsBlock = formatPatterns(snap);
+
+        if (lines.length === 0 && !patternsBlock) return '';
+        return '\n\n[DADOS REAIS DO CAÇADOR — ATUALIZADO AGORA]:\n' + lines.join('\n') + patternsBlock;
+    } catch (e) {
+        console.error('[Orbis] Erro ao buscar contexto do Supabase:', e);
+        return '';
+    }
+}
+
 export async function callAiProvider(provider, messages, apiKey, options = {}) {
     if (provider === 'gemini') {
         return callGemini(messages, apiKey, options);
@@ -8,6 +84,8 @@ export async function callAiProvider(provider, messages, apiKey, options = {}) {
 
 async function callGemini(messages, apiKey, options) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${options.model || 'gemini-2.5-flash'}:generateContent?key=${apiKey}`;
+
+    const liveContext = await buildLiveContext();
 
     // Convert history for Gemini
     const history = messages.slice(0, -1).map(msg => ({
@@ -21,7 +99,7 @@ async function callGemini(messages, apiKey, options) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             contents: [...history, { role: "user", parts: [{ text: currentMessage }] }],
-            systemInstruction: { parts: [{ text: getSystemPrompt() }] },
+            systemInstruction: { parts: [{ text: getSystemPrompt() + liveContext }] },
             generationConfig: {
                 temperature: 0.7,
                 topK: 40,
@@ -54,8 +132,10 @@ async function callOpenAiCompatible(provider, messages, apiKey, options) {
         model = options.model || "google/gemini-2.0-flash-001";
     }
 
+    const liveContext = await buildLiveContext();
+
     const formattedMessages = [
-        { role: "system", content: getSystemPrompt() },
+        { role: "system", content: getSystemPrompt() + liveContext },
         ...messages.map(msg => ({
             role: msg.tipo === "usuario" ? "user" : "assistant",
             content: msg.mensagem

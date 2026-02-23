@@ -3,6 +3,7 @@ import Typewriter from 'typewriter-effect';
 import { User, Bot, Mic, MicOff, Send, AlertCircle, Key, X, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { syncChatMessage, fetchRecentChatMessages, isSupabaseConfigured } from '../services/supabaseService';
 
 // Helper para ler do localStorage diretamente
 function readKey(name) {
@@ -75,6 +76,16 @@ export function ChatPage() {
             window.speechSynthesis?.cancel();
             audioRef.current?.pause();
         };
+    }, []);
+
+    // Recovery: restaura histórico do Supabase se localStorage só tem a mensagem de boas-vindas
+    useEffect(() => {
+        if (!isSupabaseConfigured()) return;
+        if (messages.length > 1) return; // já tem histórico local
+        fetchRecentChatMessages(100).then(remote => {
+            if (remote.length > 1) setMessages(remote);
+        }).catch(console.error);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const applyPunctuation = (text, isFinal = false) => {
@@ -199,18 +210,20 @@ export function ChatPage() {
         setMessages(newMessages);
         setInput("");
 
+        // Persiste mensagem do usuário no Supabase (fire-and-forget)
+        if (isSupabaseConfigured()) syncChatMessage(newUserMsg).catch(console.error);
+
         const aiResponseText = await sendMessage(newMessages);
 
         if (aiResponseText) {
             const newId = (Date.now() + 1).toString();
-            setMessages(prev => [...prev, {
-                id: newId,
-                tipo: "ia",
-                mensagem: aiResponseText,
-                timestamp: new Date().toISOString()
-            }].slice(-MAX_HISTORY));
+            const aiMsg = { id: newId, tipo: "ia", mensagem: aiResponseText, timestamp: new Date().toISOString() };
+            setMessages(prev => [...prev, aiMsg].slice(-MAX_HISTORY));
             setTypingMsgId(newId);
             speak(aiResponseText);
+
+            // Persiste resposta da IA no Supabase (fire-and-forget)
+            if (isSupabaseConfigured()) syncChatMessage(aiMsg).catch(console.error);
         }
     };
 
