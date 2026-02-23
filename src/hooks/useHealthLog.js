@@ -1,8 +1,10 @@
 // useHealthLog — Persistência de logs diários de saúde
 // Armazena: sono, energia, peso e nota. Histórico de 90 dias.
+// Sync opcional com Supabase (fire-and-forget) se orbis_supabase_url estiver configurado.
 
 import { useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
+import { syncHealthLog, isSupabaseConfigured } from '../services/supabaseService';
 
 /**
  * Estrutura de cada entrada:
@@ -14,15 +16,22 @@ export function useHealthLog() {
   const today = new Date().toISOString().split('T')[0];
   const todayLog = logs.find(l => l.date === today) || null;
 
-  /** Upsert do dia atual. Mantém os últimos 90 dias. */
+  /** Upsert do dia atual. Mantém os últimos 90 dias. Sync Supabase em background. */
   const logToday = useCallback((data) => {
+    const entry = { date: today, ts: Date.now(), ...data };
+
+    // 1. localStorage imediato
     setLogs(prev => {
       const filtered = prev.filter(l => l.date !== today);
-      const entry = { date: today, ts: Date.now(), ...data };
       return [entry, ...filtered]
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, 90);
     });
+
+    // 2. Supabase em background (fire-and-forget, sem bloquear a UI)
+    if (isSupabaseConfigured()) {
+      syncHealthLog(entry).catch(console.error);
+    }
   }, [setLogs, today]);
 
   /**
