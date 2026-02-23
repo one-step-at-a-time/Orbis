@@ -61,6 +61,8 @@ export function ChatPage() {
     ]);
     const [input, setInput] = useState("");
     const [tempKey, setTempKey] = useState("");
+    const [tempDbUrl, setTempDbUrl] = useState(() => readKey('orbis_supabase_url') || '');
+    const [tempDbKey, setTempDbKey] = useState(() => readKey('orbis_supabase_anon_key') || '');
     const [showKeyInput, setShowKeyInput] = useState(!hasKey);
     const [typingMsgId, setTypingMsgId] = useState(null);
     const [isListening, setIsListening] = useState(false);
@@ -293,7 +295,7 @@ export function ChatPage() {
                 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
                         <div style={{ display: "flex", gap: 16 }}>
-                            {['ia', 'search', 'voz'].map(tab => (
+                            {['ia', 'search', 'voz', 'db'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setConfigTab(tab)}
@@ -311,7 +313,7 @@ export function ChatPage() {
                                         borderBottom: configTab === tab ? "2px solid var(--primary)" : "none"
                                     }}
                                 >
-                                    {tab.toUpperCase()} CORE
+                                        {tab === 'db' ? 'SUPABASE' : `${tab.toUpperCase()} CORE`}
                                 </button>
                             ))}
                         </div>
@@ -397,6 +399,54 @@ export function ChatPage() {
                                 </div>
                                 <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
                                     Enables high-fidelity neural voice synthesis.
+                                </div>
+                            </div>
+                        )}
+
+                        {configTab === 'db' && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                <div>
+                                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", display: "block", marginBottom: 6 }}>PROJECT URL</label>
+                                    <input
+                                        type="text"
+                                        value={tempDbUrl}
+                                        onChange={e => setTempDbUrl(e.target.value)}
+                                        placeholder="https://xxxx.supabase.co"
+                                        style={{ width: "100%", boxSizing: "border-box" }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-dim)", display: "block", marginBottom: 6 }}>ANON KEY</label>
+                                    <div style={{ display: "flex", gap: 10 }}>
+                                        <input
+                                            type="password"
+                                            value={tempDbKey}
+                                            onChange={e => setTempDbKey(e.target.value)}
+                                            placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() => {
+                                                const url = tempDbUrl.trim();
+                                                const key = tempDbKey.trim();
+                                                if (url.startsWith('https://') && key.length > 20) {
+                                                    window.localStorage.setItem('orbis_supabase_url', JSON.stringify(url));
+                                                    window.localStorage.setItem('orbis_supabase_anon_key', JSON.stringify(key));
+                                                    window.location.reload();
+                                                } else {
+                                                    alert('URL ou chave inválida. Verifique os dados do Supabase.');
+                                                }
+                                            }}
+                                        >SYNC</button>
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
+                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: isSupabaseConfigured() ? "var(--success)" : "var(--danger)" }} />
+                                    {isSupabaseConfigured() ? "Supabase conectado — memória e padrões ativos" : "Supabase não configurado — dados só no localStorage"}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.6 }}>
+                                    Encontre a URL e a Anon Key em: Supabase → Project Settings → API.
                                 </div>
                             </div>
                         )}
