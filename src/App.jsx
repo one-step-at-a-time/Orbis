@@ -12,6 +12,7 @@ import { LembretesPage } from './pages/LembretesPage';
 import { FinancasPage } from './pages/FinancasPage';
 import { AnalisesPage } from './pages/AnalisesPage';
 import { MissoesPage } from './pages/MissoesPage';
+import { GemeoDijitalPage } from './pages/GemeoDijitalPage';
 import { LoginPage } from './pages/LoginPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -69,13 +70,18 @@ export default function App() {
     lembretes: LembretesPage,
     financas: FinancasPage,
     analises: AnalisesPage,
+    gemeodigital: GemeoDijitalPage,
   };
   const PageComponent = pages[page] || DashboardPage;
 
   return (
-    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative", background: "var(--bg)" }}>
+    <div className="bg-noise" style={{ display: "flex", minHeight: "100vh", position: "relative", background: "#000000" }}>
+      {/* Tactical grid background */}
+      <div className="tactical-grid-bg" />
+      {/* Floating particles — cyan glow dots */}
+      <div className="tactical-particles" />
       {/* Background premium — raios de luz animados */}
-      <BackgroundBeams className="z-0 opacity-60" />
+      <BackgroundBeams className="z-0 opacity-50" />
       {/* Mobile overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -111,9 +117,11 @@ export default function App() {
 
       {/* Main Content */}
       <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <Spotlight className="z-0" fill="var(--primary-glow)" />
+        <Spotlight className="z-0" fill="rgba(0, 240, 255, 0.06)" />
+        {/* Holographic scanner line */}
+        <div className="holographic-scanner" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
-        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto" }}>
+        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
@@ -121,6 +129,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, x: 8, filter: "blur(2px)" }}
               transition={{ duration: 0.22, ease: "easeOut" }}
+              style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
             >
               <PageComponent />
             </motion.div>
