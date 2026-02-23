@@ -57,3 +57,71 @@ export function isSupabaseConfigured() {
     localStorage.getItem('orbis_supabase_anon_key')
   );
 }
+
+// ─── Health Logs ─────────────────────────────────────────────────────────────
+//
+// Tabela necessária no Supabase Dashboard (SQL Editor):
+//
+//   create table if not exists health_logs (
+//     id          uuid      default gen_random_uuid() primary key,
+//     date        date      not null unique,
+//     sleep_hours numeric(3,1),
+//     energy      smallint  check (energy between 1 and 5),
+//     weight      numeric(5,1),
+//     notes       text,
+//     ts          bigint,
+//     created_at  timestamptz default now(),
+//     updated_at  timestamptz default now()
+//   );
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Upsert de uma entrada de log de saúde (conflito resolvido por date).
+ * @param {{ date, sleep_hours, energy, weight, notes, ts }} entry
+ * @returns {{ data, error }}
+ */
+export async function syncHealthLog(entry) {
+  const supabase = getClient();
+  if (!supabase) return { data: null, error: new Error('Supabase não configurado') };
+
+  const { data, error } = await supabase
+    .from('health_logs')
+    .upsert(
+      {
+        date:        entry.date,
+        sleep_hours: entry.sleep_hours ?? null,
+        energy:      entry.energy      ?? null,
+        weight:      entry.weight      ?? null,
+        notes:       entry.notes       ?? null,
+        ts:          entry.ts          ?? Date.now(),
+        updated_at:  new Date().toISOString(),
+      },
+      { onConflict: 'date' }
+    )
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+/**
+ * Busca logs de saúde dos últimos N dias (útil para restaurar em novo dispositivo).
+ * @param {number} days
+ * @returns {{ data, error }}
+ */
+export async function fetchHealthLogs(days = 90) {
+  const supabase = getClient();
+  if (!supabase) return { data: [], error: null };
+
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const { data, error } = await supabase
+    .from('health_logs')
+    .select('*')
+    .gte('date', since.toISOString().split('T')[0])
+    .order('date', { ascending: false });
+
+  return { data: data || [], error };
+}
