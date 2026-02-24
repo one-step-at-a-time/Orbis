@@ -188,11 +188,17 @@ export function useClaudeChat() {
 
             setLoading(false);
 
-            // Limpeza final: remove blocos markdown, JSON, asteriscos e formatação residual
-            const cleanFinal = responseText
+            // Limpeza final: remove blocos markdown, JSON de ação detectado, asteriscos e formatação residual
+            let cleanFinal = responseText;
+
+            // Remove exatamente o bloco JSON que foi detectado (evita deixar '}' residual de JSON aninhado)
+            if (jsonMatch) {
+                cleanFinal = cleanFinal.replace(jsonMatch[0], "");
+            }
+
+            cleanFinal = cleanFinal
                 .replace(/```json[\s\S]*?```/g, "")
                 .replace(/```[\s\S]*?```/g, "")
-                .replace(/\{[\s\S]*?\}/g, "")
                 .replace(/json$/gm, "")
                 .replace(/^\s*\*\s+/gm, "- ")
                 .replace(/\*/g, "")
