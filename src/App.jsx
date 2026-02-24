@@ -116,12 +116,12 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+      <div className="main-content" style={{ flex: 1, marginLeft: 260, display: "flex", flexDirection: "column", height: "100vh", overflow: "hidden", position: "relative", zIndex: 1 }}>
         <Spotlight className="z-0" fill="rgba(0, 240, 255, 0.06)" />
         {/* Holographic scanner line */}
         <div className="holographic-scanner" />
         <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
-        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column" }}>
+        <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", overflowY: "auto", minHeight: 0 }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={page}
