@@ -5,12 +5,16 @@ import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { syncChatMessage, fetchRecentChatMessages, isSupabaseConfigured } from '../services/supabaseService';
 
-// Helper para ler do localStorage diretamente
+// Helper para ler do localStorage diretamente (com fallback para valores sem JSON)
 function readKey(name) {
     try {
         const raw = window.localStorage.getItem(name);
         if (!raw) return '';
-        return JSON.parse(raw);
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return raw; // fallback: valor pode ter sido salvo sem JSON.stringify
+        }
     } catch { return ''; }
 }
 
@@ -309,7 +313,7 @@ export function ChatPage() {
                             {['ia', 'search', 'voz', 'db'].map(tab => (
                                 <button
                                     key={tab}
-                                    onClick={() => setConfigTab(tab)}
+                                    onClick={() => { setConfigTab(tab); setTempKey(''); }}
                                     style={{
                                         background: configTab === tab ? "rgba(59, 89, 255, 0.1)" : "none",
                                         border: "none",
@@ -367,7 +371,9 @@ export function ChatPage() {
                                         type="password"
                                         value={tempKey}
                                         onChange={e => setTempKey(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSaveKey(null, 'ia')}
                                         placeholder={`Enter ${storedProvider.toUpperCase()} Neural Key...`}
+                                        autoComplete="off"
                                         style={{ flex: 1 }}
                                     />
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'ia')}>SYNC</button>
@@ -386,7 +392,9 @@ export function ChatPage() {
                                         type="password"
                                         value={tempKey}
                                         onChange={e => setTempKey(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSaveKey(null, 'search')}
                                         placeholder="Enter Brave Search Key..."
+                                        autoComplete="off"
                                         style={{ flex: 1 }}
                                     />
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'search')}>SYNC</button>
@@ -404,7 +412,9 @@ export function ChatPage() {
                                         type="password"
                                         value={tempKey}
                                         onChange={e => setTempKey(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleSaveKey(null, 'voz')}
                                         placeholder="Enter ElevenLabs Voice Key..."
+                                        autoComplete="off"
                                         style={{ flex: 1 }}
                                     />
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'voz')}>SYNC</button>
