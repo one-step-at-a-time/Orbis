@@ -35,7 +35,8 @@ export function ChatPage() {
     };
 
     // Config mode state
-    const [configTab, setConfigTab] = useState('ia'); // 'ia', 'search' or 'voz'
+    const [configTab, setConfigTab] = useState('ia'); // 'ia', 'search', 'voz', 'db'
+    const [savedBadge, setSavedBadge] = useState(false);
 
     const MODEL_OPTIONS = {
         gemini: [
@@ -52,6 +53,11 @@ export function ChatPage() {
             { value: 'deepseek-ai/DeepSeek-V3', label: 'DeepSeek V3 — Recomendado' },
             { value: 'deepseek-ai/DeepSeek-R1', label: 'DeepSeek R1 — Raciocínio' },
             { value: 'Qwen/Qwen2.5-72B-Instruct', label: 'Qwen 2.5 72B' },
+        ],
+        openrouter: [
+            { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash — Recomendado' },
+            { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
+            { value: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
         ],
     };
 
@@ -238,7 +244,9 @@ export function ChatPage() {
                         ? 'orbis_gemini_key'
                         : storedProvider === 'zhipu'
                             ? 'orbis_zhipu_key'
-                            : 'orbis_siliconflow_key';
+                            : storedProvider === 'openrouter'
+                                ? 'orbis_openrouter_key'
+                                : 'orbis_siliconflow_key';
                     window.localStorage.setItem(storageKey, JSON.stringify(key));
                     window.localStorage.setItem('orbis_ai_provider', JSON.stringify(storedProvider));
                 } else if (category === 'search') {
@@ -251,7 +259,10 @@ export function ChatPage() {
                 return;
             }
             setTempKey("");
-            window.location.reload();
+            setSavedBadge(true);
+            setTimeout(() => window.location.reload(), 900);
+        } else {
+            alert("Chave muito curta. Verifique se copiou corretamente.");
         }
     };
 
@@ -332,6 +343,7 @@ export function ChatPage() {
                                             style={{ width: "100%", background: "var(--bg-input)", border: "1px solid var(--border-low)", color: "#fff", padding: "10px", borderRadius: 8, outline: "none" }}
                                         >
                                             <option value="gemini">Google Gemini</option>
+                                            <option value="openrouter">OpenRouter</option>
                                             <option value="siliconflow">SiliconFlow (DeepSeek)</option>
                                             <option value="zhipu">Zhipu AI (GLM)</option>
                                         </select>
@@ -361,8 +373,8 @@ export function ChatPage() {
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'ia')}>SYNC</button>
                                 </div>
                                 <div style={{ fontSize: 11, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 6 }}>
-                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: hasKey ? "var(--success)" : "var(--danger)" }} />
-                                    {hasKey ? `Connected to ${storedProvider.toUpperCase()}` : "No Neural Key Detected"}
+                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: savedBadge ? "#22c55e" : hasKey ? "var(--success)" : "var(--danger)" }} />
+                                    {savedBadge ? "✓ Chave salva! Recarregando..." : hasKey ? `Connected to ${storedProvider.toUpperCase()}` : "No Neural Key Detected"}
                                 </div>
                             </div>
                         )}
