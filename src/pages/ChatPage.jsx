@@ -499,8 +499,8 @@ export function ChatPage() {
                     opacity: 0.28,
                     pointerEvents: "none",
                     zIndex: 0,
-                    maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 25%, black 55%)",
-                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 25%, black 55%)",
+                    maskImage: "linear-gradient(to right, transparent 0%, black 18%)",
+                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 18%)",
                     filter: "brightness(0.9) contrast(1.1)",
                 }} />
                 <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "10px 0", display: "flex", flexDirection: "column", gap: 24, position: "relative", zIndex: 1 }}>

@@ -4,7 +4,8 @@ import Typewriter from 'typewriter-effect';
 import {
     Plus, TrendingUp, TrendingDown, DollarSign,
     ArrowUpRight, ArrowDownRight, Trash2,
-    List, Send, Bot, User, AlertCircle, Loader, Sparkles
+    List, Send, Bot, User, AlertCircle, Loader, Sparkles,
+    Settings, X, Check
 } from 'lucide-react';
 import { StatsCard } from '../components/Common';
 import { Modal } from '../components/Modal';
@@ -27,12 +28,12 @@ function getStoredKey(name) {
 function getAiConfig() {
     const provider = getStoredKey('orbis_ai_provider') || 'gemini';
     const keyMap = {
-        gemini: 'orbis_api_key',
+        gemini: 'orbis_gemini_key',
         openrouter: 'orbis_openrouter_key',
         siliconflow: 'orbis_siliconflow_key',
         zhipu: 'orbis_zhipu_key',
     };
-    const key = getStoredKey(keyMap[provider] || 'orbis_api_key');
+    const key = getStoredKey(keyMap[provider] || 'orbis_gemini_key');
     const model = getStoredKey('orbis_ai_model') || undefined;
     return { provider, key, model };
 }
@@ -124,6 +125,30 @@ export function FinancasPage() {
     const [typingMsgId, setTypingMsgId] = useState(null);
     const chatScrollRef = useRef(null);
 
+    // Config da IA inline no CONSULTOR
+    const [showFinConfig, setShowFinConfig] = useState(false);
+    const [finProvider, setFinProvider] = useState(() => getStoredKey('orbis_ai_provider') || 'siliconflow');
+    const [finKey, setFinKey] = useState('');
+    const [finConfigSaved, setFinConfigSaved] = useState(false);
+
+    const FIN_KEY_MAP = {
+        gemini: 'orbis_gemini_key',
+        openrouter: 'orbis_openrouter_key',
+        siliconflow: 'orbis_siliconflow_key',
+        zhipu: 'orbis_zhipu_key',
+    };
+
+    function handleSaveFinConfig() {
+        const k = finKey.trim();
+        if (k.length < 6) return;
+        window.localStorage.setItem(FIN_KEY_MAP[finProvider], JSON.stringify(k));
+        window.localStorage.setItem('orbis_ai_provider', JSON.stringify(finProvider));
+        setFinKey('');
+        setFinConfigSaved(true);
+        setChatError(null);
+        setTimeout(() => { setFinConfigSaved(false); setShowFinConfig(false); }, 1200);
+    }
+
     const receitas = finances.filter(f => f.tipo === 'receita').reduce((a, f) => a + Number(f.valor), 0);
     const despesas = finances.filter(f => f.tipo === 'despesa').reduce((a, f) => a + Number(f.valor), 0);
     const saldo = receitas - despesas;
@@ -143,7 +168,8 @@ export function FinancasPage() {
 
         const { provider, key, model } = getAiConfig();
         if (!key) {
-            setChatError('Nenhuma API Key configurada. Acesse o Chat e configure sua chave neural.');
+            setShowFinConfig(true);
+            setChatError(null);
             return;
         }
 
@@ -285,14 +311,14 @@ export function FinancasPage() {
                     {/* Header do módulo */}
                     <div style={{
                         padding: '14px 20px',
-                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                        borderBottom: showFinConfig ? 'none' : '1px solid rgba(255,255,255,0.06)',
                         background: 'rgba(6,182,212,0.05)',
                         display: 'flex', alignItems: 'center', gap: 10,
                     }}>
                         <div style={{ padding: 6, borderRadius: 8, background: 'rgba(6,182,212,0.15)', flexShrink: 0 }}>
                             <Bot size={16} color="var(--accent)" />
                         </div>
-                        <div>
+                        <div style={{ flex: 1 }}>
                             <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 700, color: 'var(--accent)', letterSpacing: 2 }}>
                                 NEURAL AI — MÓDULO FINANCEIRO
                             </p>
@@ -300,7 +326,80 @@ export function FinancasPage() {
                                 Análise inteligente dos seus dados financeiros reais
                             </p>
                         </div>
+                        <button
+                            onClick={() => setShowFinConfig(v => !v)}
+                            title="Configurar API"
+                            style={{
+                                padding: 6, borderRadius: 8, border: 'none', cursor: 'pointer',
+                                background: showFinConfig ? 'rgba(6,182,212,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: showFinConfig ? 'var(--accent)' : 'var(--text-dim)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            <Settings size={14} />
+                        </button>
                     </div>
+
+                    {/* Painel de config da API */}
+                    {showFinConfig && (
+                        <div style={{
+                            padding: '14px 20px',
+                            borderBottom: '1px solid rgba(255,255,255,0.06)',
+                            background: 'rgba(6,182,212,0.03)',
+                            display: 'flex', flexDirection: 'column', gap: 10,
+                        }}>
+                            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-dim)', letterSpacing: 1, fontFamily: "'JetBrains Mono', monospace" }}>
+                                CONFIGURAR CHAVE DE API
+                            </p>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <select
+                                    value={finProvider}
+                                    onChange={e => setFinProvider(e.target.value)}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 8, padding: '8px 10px', color: 'var(--text)', fontSize: 12,
+                                        outline: 'none', fontFamily: 'inherit', cursor: 'pointer',
+                                    }}
+                                >
+                                    <option value="siliconflow">SiliconFlow (DeepSeek)</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="zhipu">Zhipu AI (GLM)</option>
+                                </select>
+                                <input
+                                    type="password"
+                                    value={finKey}
+                                    onChange={e => setFinKey(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleSaveFinConfig()}
+                                    placeholder="Cole sua API Key aqui..."
+                                    autoComplete="off"
+                                    style={{
+                                        flex: 1, minWidth: 180,
+                                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: 8, padding: '8px 12px', color: 'var(--text)', fontSize: 12,
+                                        outline: 'none', fontFamily: 'inherit',
+                                    }}
+                                />
+                                <button
+                                    onClick={handleSaveFinConfig}
+                                    disabled={finKey.trim().length < 6}
+                                    style={{
+                                        padding: '8px 14px', borderRadius: 8, border: 'none', cursor: finKey.trim().length < 6 ? 'not-allowed' : 'pointer',
+                                        background: finConfigSaved ? 'rgba(34,197,94,0.2)' : finKey.trim().length < 6 ? 'rgba(255,255,255,0.05)' : 'rgba(6,182,212,0.2)',
+                                        color: finConfigSaved ? '#22c55e' : finKey.trim().length < 6 ? 'var(--text-dim)' : 'var(--accent)',
+                                        fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
+                                        transition: 'all 0.2s', fontFamily: "'JetBrains Mono', monospace",
+                                    }}
+                                >
+                                    {finConfigSaved ? <><Check size={13} /> SALVO</> : 'SALVAR'}
+                                </button>
+                            </div>
+                            <p style={{ fontSize: 10, color: 'var(--text-dim)' }}>
+                                A chave é salva localmente no seu navegador. Recomendado: SiliconFlow com DeepSeek V3 (gratuito).
+                            </p>
+                        </div>
+                    )}
 
                     {/* Área de mensagens */}
                     <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
