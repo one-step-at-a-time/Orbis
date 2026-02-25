@@ -99,7 +99,7 @@ async function callGemini(messages, apiKey, options) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             contents: [...history, { role: "user", parts: [{ text: currentMessage }] }],
-            systemInstruction: { parts: [{ text: getSystemPrompt() + liveContext }] },
+            systemInstruction: { parts: [{ text: getSystemPrompt() + liveContext + (options.systemPromptAddon || '') }] },
             generationConfig: {
                 temperature: 0.7,
                 topK: 40,
@@ -135,7 +135,7 @@ async function callOpenAiCompatible(provider, messages, apiKey, options) {
     const liveContext = await buildLiveContext();
 
     const formattedMessages = [
-        { role: "system", content: getSystemPrompt() + liveContext },
+        { role: "system", content: getSystemPrompt() + liveContext + (options.systemPromptAddon || '') },
         ...messages.map(msg => ({
             role: msg.tipo === "usuario" ? "user" : "assistant",
             content: msg.mensagem

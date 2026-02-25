@@ -86,6 +86,56 @@ function buildFinanceContext(finances) {
     return lines.join('\n');
 }
 
+// ── System prompt addon para o módulo financeiro ─────────────────────────────
+
+const FINANCE_SYSTEM_ADDON = `
+
+MÓDULO ATIVO: CONSULTOR FINANCEIRO ESPECIALIZADO
+
+Você está no módulo de consultoria financeira pessoal. REGRAS OBRIGATÓRIAS para este módulo:
+
+1. SEMPRE analise os dados financeiros reais fornecidos — cite valores exatos, percentuais e categorias pelo nome.
+2. NUNCA dê conselhos genéricos. Todo conselho deve referenciar os números reais do Caçador.
+3. Identifique padrões problemáticos: gastos excessivos por categoria, saldo negativo, ausência de reserva.
+4. Sugira ações concretas com valores estimados de economia (ex: "Reduzir 20% em alimentação = R$80/mês").
+5. Aplique boas práticas quando relevante: regra 50/30/20, fundo de emergência (3-6x gastos mensais), investimento automático.
+6. Seja direto e prático. O Caçador quer resultados, não textos longos.
+
+REGISTRO AUTOMÁTICO DE LANÇAMENTOS:
+Quando o Caçador mencionar qualquer gasto ou receita (ex: "gastei R$50 em uber", "recebi R$3000 de salário", "paguei R$120 de conta de luz"), você DEVE:
+- Emitir IMEDIATAMENTE o JSON: { "action": "CREATE_FINANCE", "data": { "descricao": "...", "valor": 50.00, "tipo": "despesa", "categoria": "transporte", "data": "YYYY-MM-DD" } }
+- Confirmar com: "[ SISTEMA ]: Lançamento registrado — [descrição] R$[valor]."
+- Contextualizar em relação ao histórico (ex: "Esse gasto representa 15% do seu total de transporte.")
+
+Categorias padrão: alimentação, transporte, moradia, saúde, lazer, educação, vestuário, serviços, outros.
+`;
+
+// ── Helper: extrai JSONs de ação da resposta da IA ────────────────────────────
+
+function extractActionJsons(text) {
+    const results = [];
+    let i = 0;
+    while (i < text.length) {
+        const start = text.indexOf('{"action"', i);
+        if (start === -1) break;
+        let depth = 0, j = start;
+        while (j < text.length) {
+            if (text[j] === '{') depth++;
+            else if (text[j] === '}') {
+                depth--;
+                if (depth === 0) {
+                    try { results.push(JSON.parse(text.slice(start, j + 1))); } catch { /* JSON inválido, ignora */ }
+                    i = j + 1;
+                    break;
+                }
+            }
+            j++;
+        }
+        if (depth !== 0) break;
+    }
+    return results;
+}
+
 const QUICK_ACTIONS = [
     { label: 'Analise meu mês', prompt: 'Analise minha situação financeira do mês com base nos meus dados reais.' },
     { label: 'Onde economizar?', prompt: 'Com base nos meus gastos reais, onde posso economizar mais?' },
@@ -110,7 +160,7 @@ const ANIM_CSS = `
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export function FinancasPage() {
-    const { finances, deleteFinance } = useAppData();
+    const { finances, addFinance, deleteFinance } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [financesParent] = useAutoAnimate();
 
@@ -124,6 +174,7 @@ export function FinancasPage() {
     const [chatError, setChatError] = useState(null);
     const [typingMsgId, setTypingMsgId] = useState(null);
     const chatScrollRef = useRef(null);
+    const [autoCreated, setAutoCreated] = useState(null); // toast de lançamento auto-registrado
 
     // Config da IA inline no CONSULTOR
     const [showFinConfig, setShowFinConfig] = useState(false);
@@ -182,29 +233,48 @@ export function FinancasPage() {
         setChatLoading(true);
 
         try {
-            // Na primeira mensagem, prefixa o contexto financeiro
-            const isFirst = prevMessages.length === 0;
+            // Injeta contexto financeiro atualizado em TODA mensagem para manter a IA atualizada
             const finCtx = buildFinanceContext(finances);
+            const ctxPrefix = `[CONTEXTO FINANCEIRO ATUALIZADO DO CAÇADOR]:\n${finCtx}\n\n---\nPergunta: `;
 
             const apiMessages = [
                 ...prevMessages,
                 {
                     ...newUserMsg,
-                    mensagem: isFirst
-                        ? `[CONTEXTO FINANCEIRO ATUAL DO CAÇADOR - USE ESTES DADOS REAIS PARA RESPONDER]:\n${finCtx}\n\n---\nPergunta: ${msg}`
-                        : msg,
+                    mensagem: ctxPrefix + msg,
                 },
             ];
 
-            const response = await callAiProvider(provider, apiMessages, key, model ? { model } : {});
+            const response = await callAiProvider(provider, apiMessages, key, {
+                ...(model ? { model } : {}),
+                systemPromptAddon: FINANCE_SYSTEM_ADDON,
+            });
 
-            // Limpa resposta: remove JSON de ação, blocos de código e asteriscos
+            // 1. Processa CREATE_FINANCE antes de limpar — auto-registra lançamentos
+            const actions = extractActionJsons(response);
+            const today = new Date().toISOString().split('T')[0];
+            for (const action of actions) {
+                if (action.action === 'CREATE_FINANCE' && action.data) {
+                    const d = action.data;
+                    const entry = {
+                        descricao: d.descricao || 'Lançamento via consultor',
+                        valor: Math.abs(Number(d.valor) || 0),
+                        tipo: d.tipo === 'receita' ? 'receita' : 'despesa',
+                        categoria: d.categoria || 'outros',
+                        data: d.data || today,
+                    };
+                    addFinance(entry);
+                    setAutoCreated(entry);
+                    setTimeout(() => setAutoCreated(null), 5000);
+                }
+            }
+
+            // 2. Limpa resposta: remove JSONs de ação, blocos de código e asteriscos
             let clean = response;
-
-            // Remove blocos JSON de ação (ex: {"action":"CREATE_FINANCE",...})
-            const jsonRegex = /\{[^{}]*"action"\s*:[^{}]*(?:\{[^{}]*\}[^{}]*)?\}/g;
-            clean = clean.replace(jsonRegex, '');
-
+            // Remove blocos JSON de ação completos (com balanceamento de chaves)
+            clean = clean.replace(/\{"action"[\s\S]*?\}(?=\s*[^{]|$)/g, (match) => {
+                try { JSON.parse(match); return ''; } catch { return match; }
+            });
             clean = clean
                 .replace(/```json[\s\S]*?```/g, '')
                 .replace(/```[\s\S]*?```/g, '')
@@ -500,6 +570,22 @@ export function FinancasPage() {
                                         }} />
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Toast: lançamento auto-registrado */}
+                        {autoCreated && (
+                            <div style={{
+                                display: 'flex', gap: 8, alignItems: 'center',
+                                padding: '10px 14px', borderRadius: 10,
+                                background: 'rgba(34,197,94,0.08)',
+                                border: '1px solid rgba(34,197,94,0.25)',
+                                animation: 'fin-bounce 0.4s ease-out',
+                            }}>
+                                <Check size={14} color="#22c55e" style={{ flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: '#22c55e' }}>
+                                    Lançamento registrado automaticamente — {autoCreated.tipo === 'receita' ? '+' : '-'}R${Number(autoCreated.valor).toFixed(2)} · {autoCreated.descricao}
+                                </span>
                             </div>
                         )}
 
