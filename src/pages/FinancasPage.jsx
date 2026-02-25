@@ -14,6 +14,7 @@ import { NewFinanceModal } from '../components/Modals';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
 import { callAiProvider } from '../services/aiProviderService';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,30 +111,45 @@ Quando o Caçador mencionar qualquer gasto ou receita (ex: "gastei R$50 em uber"
 Categorias padrão: alimentação, transporte, moradia, saúde, lazer, educação, vestuário, serviços, outros.
 `;
 
-// ── Helper: extrai JSONs de ação da resposta da IA ────────────────────────────
+// ── Helpers: extrai e remove JSONs de ação da resposta da IA ─────────────────
 
-function extractActionJsons(text) {
-    const results = [];
-    let i = 0;
-    while (i < text.length) {
-        const start = text.indexOf('{"action"', i);
-        if (start === -1) break;
+// Percorre o texto buscando qualquer { "action": ... } com balanceamento de chaves
+// Aceita qualquer espaçamento: {"action":, { "action":, etc.
+function _findActionJsonSpans(text) {
+    const spans = [];
+    const marker = /\{\s*"action"\s*:/g;
+    let match;
+    while ((match = marker.exec(text)) !== null) {
+        const start = match.index;
         let depth = 0, j = start;
         while (j < text.length) {
             if (text[j] === '{') depth++;
             else if (text[j] === '}') {
                 depth--;
-                if (depth === 0) {
-                    try { results.push(JSON.parse(text.slice(start, j + 1))); } catch { /* JSON inválido, ignora */ }
-                    i = j + 1;
-                    break;
-                }
+                if (depth === 0) { spans.push([start, j + 1]); break; }
             }
             j++;
         }
-        if (depth !== 0) break;
     }
-    return results;
+    return spans;
+}
+
+function extractActionJsons(text) {
+    return _findActionJsonSpans(text).map(([s, e]) => {
+        try { return JSON.parse(text.slice(s, e)); } catch { return null; }
+    }).filter(Boolean);
+}
+
+function removeActionJsons(text) {
+    const spans = _findActionJsonSpans(text);
+    if (!spans.length) return text;
+    let result = '';
+    let last = 0;
+    for (const [s, e] of spans) {
+        result += text.slice(last, s);
+        last = e;
+    }
+    return (result + text.slice(last)).replace(/\n{3,}/g, '\n\n').trim();
 }
 
 const QUICK_ACTIONS = [
@@ -167,8 +183,8 @@ export function FinancasPage() {
     // Tabs
     const [activeTab, setActiveTab] = useState('registros');
 
-    // Chat
-    const [chatMessages, setChatMessages] = useState([]);
+    // Chat — persiste histórico no localStorage
+    const [chatMessages, setChatMessages] = useLocalStorage('orbis_finance_chat', []);
     const [chatInput, setChatInput] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
     const [chatError, setChatError] = useState(null);
@@ -270,11 +286,7 @@ export function FinancasPage() {
             }
 
             // 2. Limpa resposta: remove JSONs de ação, blocos de código e asteriscos
-            let clean = response;
-            // Remove blocos JSON de ação completos (com balanceamento de chaves)
-            clean = clean.replace(/\{"action"[\s\S]*?\}(?=\s*[^{]|$)/g, (match) => {
-                try { JSON.parse(match); return ''; } catch { return match; }
-            });
+            let clean = removeActionJsons(response);
             clean = clean
                 .replace(/```json[\s\S]*?```/g, '')
                 .replace(/```[\s\S]*?```/g, '')
@@ -396,6 +408,15 @@ export function FinancasPage() {
                                 Análise inteligente dos seus dados financeiros reais
                             </p>
                         </div>
+                        {chatMessages.length > 0 && (
+                            <button
+                                onClick={() => { if (window.confirm('Limpar histórico do consultor?')) setChatMessages([]); }}
+                                title="Limpar conversa"
+                                style={{ padding: 6, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        )}
                         <button
                             onClick={() => setShowFinConfig(v => !v)}
                             title="Configurar API"
