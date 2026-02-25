@@ -92,6 +92,24 @@
  *   created_at  timestamptz default now(),
  *   updated_at  timestamptz default now()
  * );
+ *
+ * -- Notas do Caderno
+ * create table if not exists notes (
+ *   id          text      primary key,
+ *   titulo      text      not null default 'Sem título',
+ *   conteudo    text,
+ *   created_at  timestamptz default now(),
+ *   updated_at  timestamptz default now()
+ * );
+ *
+ * -- Entradas do Diário
+ * create table if not exists diary_entries (
+ *   id          text      primary key,
+ *   data        date      not null,
+ *   conteudo    text,
+ *   created_at  timestamptz default now(),
+ *   updated_at  timestamptz default now()
+ * );
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -307,6 +325,64 @@ export async function fetchHealthLogs(days = 90) {
     return { data: data || [], error };
 }
 
+// ── Notes (Caderno) ────────────────────────────────────────────────────────────
+
+export async function syncNote(note) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('notes').upsert({
+        id:         note.id,
+        titulo:     note.titulo    || 'Sem título',
+        conteudo:   note.conteudo  || null,
+        updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+}
+
+export async function deleteNoteSupabase(id) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('notes').delete().eq('id', id);
+}
+
+export async function fetchNotes() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase
+        .from('notes')
+        .select('*')
+        .order('updated_at', { ascending: false });
+    return data || [];
+}
+
+// ── Diary Entries (Caderno) ────────────────────────────────────────────────────
+
+export async function syncDiaryEntry(entry) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('diary_entries').upsert({
+        id:         entry.id,
+        data:       entry.data,
+        conteudo:   entry.conteudo || null,
+        updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+}
+
+export async function deleteDiaryEntrySupabase(id) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('diary_entries').delete().eq('id', id);
+}
+
+export async function fetchDiaryEntries() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase
+        .from('diary_entries')
+        .select('*')
+        .order('data', { ascending: false });
+    return data || [];
+}
+
 // ── AI Context Snapshot ────────────────────────────────────────────────────────
 /**
  * Busca um snapshot compacto de todos os dados para injetar no prompt da IA.
@@ -324,7 +400,7 @@ export async function fetchAiContextSnapshot() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-    const [tasksRes, habitsRes, financesRes, projectsRes, remindersRes, healthRes] =
+    const [tasksRes, habitsRes, financesRes, projectsRes, remindersRes, healthRes, notesRes, diaryRes] =
         await Promise.allSettled([
             supabase.from('tasks')
                 .select('titulo, status, prioridade, data_prazo')
@@ -356,6 +432,16 @@ export async function fetchAiContextSnapshot() {
                 .select('date, sleep_hours, energy, weight')
                 .gte('date', weekAgoStr)
                 .order('date', { ascending: false }),
+
+            supabase.from('notes')
+                .select('titulo, conteudo')
+                .order('updated_at', { ascending: false })
+                .limit(5),
+
+            supabase.from('diary_entries')
+                .select('data, conteudo')
+                .order('data', { ascending: false })
+                .limit(5),
         ]);
 
     return {
@@ -365,6 +451,8 @@ export async function fetchAiContextSnapshot() {
         projects:   projectsRes.status   === 'fulfilled' ? (projectsRes.value.data   || []) : [],
         reminders:  remindersRes.status  === 'fulfilled' ? (remindersRes.value.data  || []) : [],
         healthLogs: healthRes.status     === 'fulfilled' ? (healthRes.value.data     || []) : [],
+        notes:      notesRes.status      === 'fulfilled' ? (notesRes.value.data      || []) : [],
+        diary:      diaryRes.status      === 'fulfilled' ? (diaryRes.value.data      || []) : [],
         today: new Date().toISOString().split('T')[0],
     };
 }

@@ -1,12 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import Typewriter from 'typewriter-effect';
 import {
     Plus, TrendingUp, TrendingDown, DollarSign,
     ArrowUpRight, ArrowDownRight, Trash2,
     List, Send, Bot, User, AlertCircle, Loader, Sparkles,
-    Settings, X, Check
+    Settings, X, Check, BarChart2, Search, Filter
 } from 'lucide-react';
+import {
+    BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts';
 import { StatsCard } from '../components/Common';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
@@ -104,9 +108,11 @@ Você está no módulo de consultoria financeira pessoal. REGRAS OBRIGATÓRIAS p
 
 REGISTRO AUTOMÁTICO DE LANÇAMENTOS:
 Quando o Caçador mencionar qualquer gasto ou receita (ex: "gastei R$50 em uber", "recebi R$3000 de salário", "paguei R$120 de conta de luz"), você DEVE:
-- Emitir IMEDIATAMENTE o JSON: { "action": "CREATE_FINANCE", "data": { "descricao": "...", "valor": 50.00, "tipo": "despesa", "categoria": "transporte", "data": "YYYY-MM-DD" } }
-- Confirmar com: "[ SISTEMA ]: Lançamento registrado — [descrição] R$[valor]."
-- Contextualizar em relação ao histórico (ex: "Esse gasto representa 15% do seu total de transporte.")
+- Escreva PRIMEIRO toda a sua análise/resposta em texto limpo.
+- AO FINAL da resposta, em linha separada, emita SOMENTE o JSON (sem texto antes ou depois na mesma linha):
+  { "action": "CREATE_FINANCE", "data": { "descricao": "...", "valor": 50.00, "tipo": "despesa", "categoria": "transporte", "data": "YYYY-MM-DD" } }
+- Após o JSON, em nova linha, confirme: "[ SISTEMA ]: Lançamento registrado — [descrição] R$[valor]."
+- Contextualize em relação ao histórico (ex: "Esse gasto representa 15% do seu total de transporte.")
 
 Categorias padrão: alimentação, transporte, moradia, saúde, lazer, educação, vestuário, serviços, outros.
 `;
@@ -152,6 +158,25 @@ function removeActionJsons(text) {
     return (result + text.slice(last)).replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// Limpeza completa de uma mensagem da IA para exibição
+// Garante que nenhum JSON, bloco de código ou markdown vaze para o chat
+function cleanIaMsg(text) {
+    if (!text) return '';
+    let t = removeActionJsons(text);
+    // Remove blocos de código markdown (```...```)
+    t = t.replace(/```json[\s\S]*?```/gi, '');
+    t = t.replace(/```[\s\S]*?```/g, '');
+    // Fallback: remove qualquer linha que seja apenas um bloco JSON solto
+    // (começa com { e termina com } na mesma "seção")
+    t = t.replace(/^\s*\{[^]*?\}\s*$/gm, '');
+    // Remove asteriscos e headers markdown
+    t = t.replace(/\*/g, '');
+    t = t.replace(/#{1,6}\s+/g, '');
+    // Normaliza linhas em branco extras
+    t = t.replace(/\n{3,}/g, '\n\n');
+    return t.trim();
+}
+
 const QUICK_ACTIONS = [
     { label: 'Analise meu mês', prompt: 'Analise minha situação financeira do mês com base nos meus dados reais.' },
     { label: 'Onde economizar?', prompt: 'Com base nos meus gastos reais, onde posso economizar mais?' },
@@ -159,6 +184,8 @@ const QUICK_ACTIONS = [
     { label: 'Maior gasto', prompt: 'Qual é minha maior categoria de gasto e o que isso representa?' },
     { label: 'Planejamento', prompt: 'Com base nos meus dados, como devo planejar meus próximos gastos?' },
 ];
+
+const CHART_COLORS = ['#06b6d4', '#8b5cf6', '#f59e0b', '#22c55e', '#ef4444', '#ec4899', '#3b82f6', '#64748b'];
 
 // ── CSS de animações ──────────────────────────────────────────────────────────
 
@@ -192,6 +219,11 @@ export function FinancasPage() {
     const chatScrollRef = useRef(null);
     const [autoCreated, setAutoCreated] = useState(null); // toast de lançamento auto-registrado
 
+    // Filtros da aba Registros
+    const [filterText, setFilterText] = useState('');
+    const [filterTipo, setFilterTipo] = useState('');
+    const [filterCat, setFilterCat] = useState('');
+
     // Config da IA inline no CONSULTOR
     const [showFinConfig, setShowFinConfig] = useState(false);
     const [finProvider, setFinProvider] = useState(() => getStoredKey('orbis_ai_provider') || 'siliconflow');
@@ -216,9 +248,66 @@ export function FinancasPage() {
         setTimeout(() => { setFinConfigSaved(false); setShowFinConfig(false); }, 1200);
     }
 
-    const receitas = finances.filter(f => f.tipo === 'receita').reduce((a, f) => a + Number(f.valor), 0);
-    const despesas = finances.filter(f => f.tipo === 'despesa').reduce((a, f) => a + Number(f.valor), 0);
-    const saldo = receitas - despesas;
+    const { receitas, despesas, saldo } = useMemo(() => {
+        const r = finances.filter(f => f.tipo === 'receita').reduce((a, f) => a + Number(f.valor), 0);
+        const d = finances.filter(f => f.tipo === 'despesa').reduce((a, f) => a + Number(f.valor), 0);
+        return { receitas: r, despesas: d, saldo: r - d };
+    }, [finances]);
+
+    // Categorias únicas para filtro
+    const categories = useMemo(() =>
+        [...new Set(finances.map(f => f.categoria).filter(Boolean))].sort()
+    , [finances]);
+
+    // Lançamentos filtrados (aba Registros) — mais recente primeiro
+    const filteredFinances = useMemo(() => {
+        return finances
+            .filter(f => {
+                if (filterTipo && f.tipo !== filterTipo) return false;
+                if (filterCat && f.categoria !== filterCat) return false;
+                if (filterText) {
+                    const txt = filterText.toLowerCase();
+                    if (!(f.descricao || '').toLowerCase().includes(txt) &&
+                        !(f.categoria || '').toLowerCase().includes(txt)) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+    }, [finances, filterText, filterTipo, filterCat]);
+
+    // Dados mensais para gráfico de barras (últimos 6 meses)
+    const monthlyData = useMemo(() => {
+        const now = new Date();
+        return Array.from({ length: 6 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const label = d.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+            const r = finances.filter(f => f.tipo === 'receita' && (f.data || '').startsWith(key))
+                .reduce((a, f) => a + Number(f.valor), 0);
+            const dx = finances.filter(f => f.tipo === 'despesa' && (f.data || '').startsWith(key))
+                .reduce((a, f) => a + Number(f.valor), 0);
+            return { mes: label.charAt(0).toUpperCase() + label.slice(1), receitas: r, despesas: dx };
+        });
+    }, [finances]);
+
+    // Dados por categoria para gráfico de pizza
+    const catData = useMemo(() => {
+        const map = {};
+        finances.filter(f => f.tipo === 'despesa').forEach(f => {
+            const cat = f.categoria || 'outros';
+            map[cat] = (map[cat] || 0) + Number(f.valor);
+        });
+        if (Object.keys(map).length === 0) return [];
+        const total = Object.values(map).reduce((a, v) => a + v, 0);
+        return Object.entries(map)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, value], i) => ({
+                name,
+                value,
+                pct: total > 0 ? Math.round((value / total) * 100) : 0,
+                color: CHART_COLORS[i % CHART_COLORS.length],
+            }));
+    }, [finances]);
 
     // Sanitiza mensagens antigas que possam ter JSON exposto (migração)
     useEffect(() => {
@@ -272,8 +361,9 @@ export function FinancasPage() {
             const finCtx = buildFinanceContext(finances);
             const ctxPrefix = `[CONTEXTO FINANCEIRO ATUALIZADO DO CAÇADOR]:\n${finCtx}\n\n---\nPergunta: `;
 
+            // Limita a 14 mensagens (7 trocas) para controlar uso de tokens e evitar erros de cota
             const apiMessages = [
-                ...prevMessages,
+                ...prevMessages.slice(-14),
                 {
                     ...newUserMsg,
                     mensagem: ctxPrefix + msg,
@@ -298,9 +388,17 @@ export function FinancasPage() {
                         categoria: d.categoria || 'outros',
                         data: d.data || today,
                     };
-                    addFinance(entry);
-                    setAutoCreated(entry);
-                    setTimeout(() => setAutoCreated(null), 5000);
+                    // Deduplicação: ignora se já existe lançamento idêntico (mesmo valor, tipo e descrição)
+                    const isDuplicate = finances.some(f =>
+                        Math.abs(Number(f.valor) - entry.valor) < 0.01 &&
+                        f.tipo === entry.tipo &&
+                        (f.descricao || '').toLowerCase().trim() === (entry.descricao || '').toLowerCase().trim()
+                    );
+                    if (!isDuplicate) {
+                        addFinance(entry);
+                        setAutoCreated(entry);
+                        setTimeout(() => setAutoCreated(null), 5000);
+                    }
                 }
             }
 
@@ -343,10 +441,11 @@ export function FinancasPage() {
             </div>
 
             {/* Tab switcher */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {[
                     { id: 'registros', icon: <List size={14} />, label: 'REGISTROS' },
                     { id: 'consultor', icon: <Sparkles size={14} />, label: 'CONSULTOR IA' },
+                    { id: 'analise', icon: <BarChart2 size={14} />, label: 'ANÁLISE' },
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -368,14 +467,78 @@ export function FinancasPage() {
             {/* ── REGISTROS ── */}
             {activeTab === 'registros' && (
                 <div className="card" style={{ padding: 20 }}>
-                    <h3 style={{ fontWeight: 600, marginBottom: 16 }}>Lançamentos Recentes</h3>
+                    {/* Barra de filtros */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+                            <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)', pointerEvents: 'none' }} />
+                            <input
+                                type="text"
+                                value={filterText}
+                                onChange={e => setFilterText(e.target.value)}
+                                placeholder="Buscar descrição..."
+                                style={{
+                                    width: '100%', boxSizing: 'border-box',
+                                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                    borderRadius: 8, padding: '7px 10px 7px 30px',
+                                    color: 'var(--text)', fontSize: 12, outline: 'none', fontFamily: 'inherit',
+                                }}
+                            />
+                        </div>
+                        <select
+                            value={filterTipo}
+                            onChange={e => setFilterTipo(e.target.value)}
+                            style={{
+                                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: 8, padding: '7px 10px', color: filterTipo ? 'var(--text)' : 'var(--text-dim)',
+                                fontSize: 12, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            }}
+                        >
+                            <option value="">Todos os tipos</option>
+                            <option value="receita">Receitas</option>
+                            <option value="despesa">Despesas</option>
+                        </select>
+                        <select
+                            value={filterCat}
+                            onChange={e => setFilterCat(e.target.value)}
+                            style={{
+                                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                                borderRadius: 8, padding: '7px 10px', color: filterCat ? 'var(--text)' : 'var(--text-dim)',
+                                fontSize: 12, outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                            }}
+                        >
+                            <option value="">Todas categorias</option>
+                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {(filterText || filterTipo || filterCat) && (
+                            <button
+                                onClick={() => { setFilterText(''); setFilterTipo(''); setFilterCat(''); }}
+                                style={{
+                                    padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                                    background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: 11,
+                                    fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+                                }}
+                            >
+                                <X size={11} /> LIMPAR
+                            </button>
+                        )}
+                        <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 'auto' }}>
+                            {filteredFinances.length}/{finances.length}
+                        </span>
+                    </div>
+
+                    {/* Lista */}
                     <div ref={financesParent} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {finances.length === 0 && (
                             <p style={{ textAlign: 'center', color: 'var(--text-dim)', padding: 32, fontSize: 14 }}>
                                 Nenhum lançamento registrado ainda.
                             </p>
                         )}
-                        {finances.map(f => (
+                        {finances.length > 0 && filteredFinances.length === 0 && (
+                            <p style={{ textAlign: 'center', color: 'var(--text-dim)', padding: 24, fontSize: 14 }}>
+                                Nenhum lançamento encontrado com os filtros selecionados.
+                            </p>
+                        )}
+                        {filteredFinances.map(f => (
                             <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 10, background: 'rgba(17,24,39,0.5)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                     <div style={{ padding: 8, borderRadius: 8, background: f.tipo === 'receita' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)' }}>
@@ -578,13 +741,15 @@ export function FinancasPage() {
                                             key={m.id}
                                             options={{ delay: 10, cursor: '▮' }}
                                             onInit={tw => {
-                                                tw.typeString(m.mensagem)
+                                                tw.typeString(cleanIaMsg(m.mensagem))
                                                     .callFunction(() => setTypingMsgId(null))
                                                     .start();
                                             }}
                                         />
                                     ) : (
-                                        <span style={{ whiteSpace: 'pre-wrap' }}>{m.mensagem}</span>
+                                        <span style={{ whiteSpace: 'pre-wrap' }}>
+                                            {m.tipo === 'ia' ? cleanIaMsg(m.mensagem) : m.mensagem}
+                                        </span>
                                     )}
                                 </div>
                                 {m.tipo === 'usuario' && (
@@ -678,6 +843,106 @@ export function FinancasPage() {
                                 : <Send size={16} />}
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* ── ANÁLISE ── */}
+            {activeTab === 'analise' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                    {finances.length === 0 && (
+                        <div className="card" style={{ padding: 48, textAlign: 'center' }}>
+                            <BarChart2 size={32} color="var(--text-dim)" style={{ marginBottom: 12, margin: '0 auto 12px' }} />
+                            <p style={{ color: 'var(--text-dim)', fontSize: 14 }}>Registre lançamentos para ver as análises gráficas.</p>
+                        </div>
+                    )}
+
+                    {finances.length > 0 && (
+                        <>
+                            {/* Gráfico de barras — mensal */}
+                            <div className="card" style={{ padding: 20 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                                    <BarChart2 size={16} color="var(--accent)" />
+                                    <span style={{ fontWeight: 600, fontSize: 14, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>
+                                        RECEITAS vs DESPESAS — ÚLTIMOS 6 MESES
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                                    <span style={{ fontSize: 11, color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#22c55e', display: 'inline-block' }} /> Receitas
+                                    </span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ width: 10, height: 10, borderRadius: 2, background: '#ef4444', display: 'inline-block' }} /> Despesas
+                                    </span>
+                                </div>
+                                <div style={{ height: 240 }}>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={monthlyData} barGap={4} barSize={18}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                            <XAxis dataKey="mes" stroke="#64748b" fontSize={12} tick={{ fill: 'var(--text-dim)' }} />
+                                            <YAxis stroke="#64748b" fontSize={11} tick={{ fill: 'var(--text-dim)' }}
+                                                tickFormatter={v => v >= 1000 ? `R$${(v / 1000).toFixed(0)}k` : `R$${v}`} />
+                                            <Tooltip
+                                                contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10 }}
+                                                formatter={(v, name) => [`R$ ${Number(v).toFixed(2).replace('.', ',')}`, name === 'receitas' ? 'Receitas' : 'Despesas']}
+                                                labelStyle={{ color: 'var(--text)', fontWeight: 600, marginBottom: 4 }}
+                                            />
+                                            <Bar dataKey="receitas" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Gráfico de pizza — categorias */}
+                            {catData.length > 0 && (
+                                <div className="card" style={{ padding: 20 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+                                        <Filter size={16} color="var(--accent)" />
+                                        <span style={{ fontWeight: 600, fontSize: 14, fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>
+                                            DESPESAS POR CATEGORIA
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                                        <div style={{ flex: '0 0 200px', height: 200 }}>
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={catData}
+                                                        cx="50%" cy="50%"
+                                                        innerRadius={55} outerRadius={80}
+                                                        paddingAngle={3} dataKey="value"
+                                                    >
+                                                        {catData.map((entry, index) => (
+                                                            <Cell key={index} fill={entry.color} />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip
+                                                        contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10 }}
+                                                        formatter={(v) => [`R$ ${Number(v).toFixed(2).replace('.', ',')}`, 'Valor']}
+                                                    />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 160 }}>
+                                            {catData.map(c => (
+                                                <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <div style={{ width: 10, height: 10, borderRadius: 2, background: c.color, flexShrink: 0 }} />
+                                                    <span style={{ fontSize: 12, color: 'var(--text-dim)', flex: 1, textTransform: 'capitalize' }}>{c.name}</span>
+                                                    <span style={{ fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: 'var(--text)' }}>
+                                                        {formatCurrency(c.value)}
+                                                    </span>
+                                                    <span style={{ fontSize: 11, color: c.color, fontWeight: 700, minWidth: 36, textAlign: 'right' }}>
+                                                        {c.pct}%
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             )}
 

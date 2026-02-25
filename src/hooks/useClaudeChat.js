@@ -41,7 +41,7 @@ export function useClaudeChat() {
     const [loading, setLoading] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const [error, setError] = useState(null);
-    const { addTask, addFinance, addHabit, addReminder, addProject } = useAppData();
+    const { addTask, addFinance, addHabit, addReminder, addProject, finances } = useAppData();
 
     // Lê chaves frescas do localStorage a cada render (não em cache no React state)
     const provider = getKey('orbis_ai_provider') || 'gemini';
@@ -219,7 +219,15 @@ export function useClaudeChat() {
         const { action, data } = actionObj;
         switch (action) {
             case 'CREATE_TASK': addTask({ status: 'pendente', ...data }); break;
-            case 'CREATE_FINANCE': addFinance(data); break;
+            case 'CREATE_FINANCE': {
+                const isDuplicate = finances.some(f =>
+                    Math.abs(Number(f.valor) - Math.abs(Number(data.valor) || 0)) < 0.01 &&
+                    f.tipo === data.tipo &&
+                    (f.descricao || '').toLowerCase().trim() === (data.descricao || '').toLowerCase().trim()
+                );
+                if (!isDuplicate) addFinance(data);
+                break;
+            }
             case 'CREATE_HABIT': addHabit({ icone: '✨', metaMensal: 30, ...data }); break;
             case 'CREATE_REMINDER': addReminder(data); break;
             case 'CREATE_PROJECT': addProject({ cor: '#06b6d4', ...data }); break;
