@@ -1,7 +1,7 @@
 // SOVEREIGN NEXUS — Command Center (Sidebar)
 import React, { useRef, useEffect, useState } from 'react';
 import { animate } from 'animejs';
-import { X, Zap, Download, Upload } from 'lucide-react';
+import { X, Zap, Download, Upload, Camera, User } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { cn } from '../utils/formatters';
 import { usePlayer } from '../context/PlayerContext';
@@ -233,6 +233,24 @@ export function Sidebar({ page, setPage, onClose }) {
     const [booted, setBooted] = useState(false);
     useEffect(() => { const t = setTimeout(() => setBooted(true), 100); return () => clearTimeout(t); }, []);
 
+    // Avatar / foto de perfil
+    const avatarInputRef = useRef(null);
+    const [avatar, setAvatar] = useState(() => {
+        try { return localStorage.getItem('orbis_avatar') || null; } catch { return null; }
+    });
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            setAvatar(dataUrl);
+            try { localStorage.setItem('orbis_avatar', dataUrl); } catch {}
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
     return (
         <div style={{
             display: "flex", flexDirection: "column", height: "100%", width: 240,
@@ -272,18 +290,41 @@ export function Sidebar({ page, setPage, onClose }) {
                 position: "relative", zIndex: 1,
                 display: "flex", alignItems: "center", gap: 10,
             }}>
-                {/* Zap icon with moving border */}
-                <div style={{ position: "relative", flexShrink: 0 }}>
+                {/* Avatar — foto de perfil clicável */}
+                <div
+                    onClick={() => avatarInputRef.current?.click()}
+                    title="Clique para alterar foto de perfil"
+                    style={{ position: "relative", flexShrink: 0, cursor: "pointer" }}
+                >
                     <div style={{
-                        width: 36, height: 36,
-                        clipPath: "polygon(6px 0%, 100% 0%, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0% 100%, 0% 6px)",
-                        background: "linear-gradient(135deg, #00F0FF, #007888)",
+                        width: 48, height: 48,
+                        borderRadius: 6,
+                        border: avatar ? "1px solid rgba(0,240,255,0.4)" : "1.5px dashed rgba(0,240,255,0.35)",
+                        boxShadow: avatar ? "0 0 16px rgba(0,240,255,0.25)" : "none",
+                        overflow: "hidden",
+                        background: avatar ? "transparent" : "rgba(0,240,255,0.05)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 0 20px rgba(0,240,255,0.6), 0 0 40px rgba(0,240,255,0.2)",
+                        transition: "all 0.2s",
                     }}>
-                        <Zap size={18} color="#000000" strokeWidth={2.5} />
+                        {avatar ? (
+                            <img src={avatar} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                            <User size={22} color="rgba(0,240,255,0.45)" />
+                        )}
+                    </div>
+                    {/* Camera badge */}
+                    <div style={{
+                        position: "absolute", bottom: -2, right: -2,
+                        width: 16, height: 16, borderRadius: "50%",
+                        background: "rgba(0,5,6,0.9)",
+                        border: "1px solid rgba(0,240,255,0.4)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        pointerEvents: "none",
+                    }}>
+                        <Camera size={8} color="#00F0FF" />
                     </div>
                 </div>
+                <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 7, fontFamily: "var(--font-system)", letterSpacing: "0.25em", color: "rgba(0,240,255,0.4)", marginBottom: 3, textTransform: "uppercase" }}>

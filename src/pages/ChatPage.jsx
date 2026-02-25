@@ -485,24 +485,6 @@ export function ChatPage() {
             )}
 
             <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", background: "transparent", border: "none", boxShadow: "none", position: "relative" }}>
-                {/* Hunter background — personagem decorativo no canto direito */}
-                <div style={{
-                    position: "absolute",
-                    right: 0,
-                    bottom: 0,
-                    width: "42%",
-                    height: "100%",
-                    backgroundImage: "url(/Orbis/hunter.png)",
-                    backgroundPosition: "bottom right",
-                    backgroundRepeat: "no-repeat",
-                    backgroundSize: "contain",
-                    opacity: 0.28,
-                    pointerEvents: "none",
-                    zIndex: 0,
-                    maskImage: "linear-gradient(to right, transparent 0%, black 18%)",
-                    WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 18%)",
-                    filter: "brightness(0.9) contrast(1.1)",
-                }} />
                 <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "10px 0", display: "flex", flexDirection: "column", gap: 24, position: "relative", zIndex: 1 }}>
                     {messages.map(msg => (
                         <div key={msg.id} style={{ display: "flex", gap: 16, flexDirection: msg.tipo === "usuario" ? "row-reverse" : "row" }} className="animate-slide-up">
