@@ -220,6 +220,25 @@ export function FinancasPage() {
     const despesas = finances.filter(f => f.tipo === 'despesa').reduce((a, f) => a + Number(f.valor), 0);
     const saldo = receitas - despesas;
 
+    // Sanitiza mensagens antigas que possam ter JSON exposto (migração)
+    useEffect(() => {
+        const hasJson = chatMessages.some(
+            m => m.tipo === 'ia' && /\{\s*"action"\s*:/.test(m.mensagem)
+        );
+        if (hasJson) {
+            setChatMessages(prev => prev.map(m => {
+                if (m.tipo !== 'ia') return m;
+                const cleaned = removeActionJsons(m.mensagem)
+                    .replace(/```json[\s\S]*?```/g, '')
+                    .replace(/```[\s\S]*?```/g, '')
+                    .replace(/\*/g, '')
+                    .trim();
+                return { ...m, mensagem: cleaned };
+            }));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Auto-scroll
     useEffect(() => {
         if (chatScrollRef.current) {
