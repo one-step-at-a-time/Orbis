@@ -157,33 +157,37 @@ FORMATAÇÃO:
 Data atual: ${new Date().toISOString().split('T')[0]}`;
 }
 
-// ── Gemini ────────────────────────────────────────────────────────────────────
+// ── SiliconFlow (DeepSeek) ────────────────────────────────────────────────────
 
-async function callGemini(messages, apiKey, liveContext) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+async function callSiliconFlow(messages, apiKey, liveContext) {
+    const formattedMessages = [
+        { role: 'system', content: getSystemPrompt() + liveContext },
+        ...messages.map(msg => ({
+            role: msg.tipo === 'usuario' ? 'user' : 'assistant',
+            content: msg.mensagem
+        }))
+    ];
 
-    const history = messages.slice(0, -1).map(msg => ({
-        role: msg.tipo === 'usuario' ? 'user' : 'model',
-        parts: [{ text: msg.mensagem }]
-    }));
-    const currentMessage = messages[messages.length - 1].mensagem;
-
-    const response = await fetch(url, {
+    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
         body: JSON.stringify({
-            contents: [...history, { role: 'user', parts: [{ text: currentMessage }] }],
-            systemInstruction: { parts: [{ text: getSystemPrompt() + liveContext }] },
-            generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 2048 }
+            model: 'deepseek-ai/DeepSeek-V3',
+            messages: formattedMessages,
+            temperature: 0.7,
+            max_tokens: 2048
         })
     });
 
     if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error?.message || 'Erro no Gemini');
+        throw new Error(err.error?.message || `Erro no SiliconFlow (${response.status})`);
     }
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    return data.choices[0].message.content;
 }
 
 // ── Ações no Supabase ─────────────────────────────────────────────────────────
@@ -283,9 +287,9 @@ export default async function handler(req, res) {
         const chatId = message.chat.id;
         const text = message.text.trim();
 
-        const apiKey = process.env.GEMINI_API_KEY;
+        const apiKey = process.env.SILICONFLOW_API_KEY;
         if (!apiKey) {
-            console.error('[Telegram] GEMINI_API_KEY não configurada.');
+            console.error('[Telegram] SILICONFLOW_API_KEY não configurada.');
             return res.status(200).json({ status: 'misconfigured' });
         }
 
@@ -298,8 +302,8 @@ export default async function handler(req, res) {
         const supabase = getSupabase();
         const liveContext = await buildLiveContext(supabase);
 
-        // Chama Gemini
-        let responseText = await callGemini(messages, apiKey, liveContext);
+        // Chama SiliconFlow (DeepSeek)
+        let responseText = await callSiliconFlow(messages, apiKey, liveContext);
 
         // Detecta e executa ação JSON
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
