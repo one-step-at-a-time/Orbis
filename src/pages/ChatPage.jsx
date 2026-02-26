@@ -67,7 +67,7 @@ export function ChatPage() {
 
     // UI state
     const [messages, setMessages] = useLocalStorage('orbis_chat_history', [
-        { id: "w", tipo: "ia", mensagem: "[ SISTEMA ]: Conexão estabelecida, Caçador.\n\nNúcleo operacional ativo. Todos os subsistemas funcionando.\n\nCapacidades disponíveis:\n- Registrar missões, tarefas e projetos\n- Criar hábitos e lembretes\n- Gerenciar recursos financeiros\n- Consultar dados externos em tempo real\n\nAguardando instrução.", timestamp: new Date().toISOString() }
+        { id: "w", tipo: "ia", mensagem: "Oi! Eu sou LYRA, sua companheira pessoal.\n\nEstou aqui para te ajudar com tudo — tarefas, hábitos, finanças, projetos, ou simplesmente para pensar junto e conversar.\n\nPode criar itens, pedir análises, perguntar qualquer coisa, ou só desabafar. Estou te ouvindo.\n\nComo você está hoje?", timestamp: new Date().toISOString() }
     ]);
     const [input, setInput] = useState("");
     const [tempKey, setTempKey] = useState("");
@@ -400,7 +400,7 @@ export function ChatPage() {
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'search')}>SYNC</button>
                                 </div>
                                 <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
-                                    Allows THE SYSTEM to access real-time web data via Brave Search API.
+                                    Permite que LYRA acesse dados em tempo real via Brave Search API.
                                 </div>
                             </div>
                         )}
@@ -420,7 +420,7 @@ export function ChatPage() {
                                     <button className="btn btn-primary" onClick={() => handleSaveKey(null, 'voz')}>SYNC</button>
                                 </div>
                                 <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
-                                    Enables high-fidelity neural voice synthesis.
+                                    Ativa síntese de voz de alta qualidade para LYRA falar.
                                 </div>
                             </div>
                         )}
@@ -488,12 +488,12 @@ export function ChatPage() {
                 <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "10px 0", display: "flex", flexDirection: "column", gap: 24, position: "relative", zIndex: 1 }}>
                     {messages.map(msg => (
                         <div key={msg.id} style={{ display: "flex", gap: 16, flexDirection: msg.tipo === "usuario" ? "row-reverse" : "row" }} className="animate-slide-up">
-                            <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(59, 89, 255, 0.1)" : "var(--primary)", border: msg.tipo === "usuario" ? "2.5px solid var(--primary)" : "none" }}>
-                                {msg.tipo === "usuario" ? <User size={20} color="var(--primary)" /> : <Bot size={20} color="white" />}
+                            <div style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: msg.tipo === "usuario" ? "rgba(59, 89, 255, 0.1)" : "linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)", border: msg.tipo === "usuario" ? "2.5px solid var(--primary)" : "none", boxShadow: msg.tipo === "ia" ? "0 0 14px rgba(139,92,246,0.4)" : "none" }}>
+                                {msg.tipo === "usuario" ? <User size={20} color="var(--primary)" /> : <span style={{ fontSize: 18, fontWeight: 800, color: "white", fontStyle: "italic", fontFamily: "Georgia, serif" }}>L</span>}
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: msg.tipo === "usuario" ? "flex-end" : "flex-start" }}>
                                 <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 4 }}>
-                                    <span style={{ fontSize: 14, fontWeight: 700, color: "#fff" }}>{msg.tipo === "usuario" ? "Commander_Z" : "Neural_AI"}</span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: msg.tipo === "ia" ? "#c4b5fd" : "#fff" }}>{msg.tipo === "usuario" ? "Você" : "LYRA"}</span>
                                     <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{new Date(msg.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
                                 </div>
                                 <div className={msg.tipo === "usuario" ? "chat-bubble-user" : "chat-bubble-ai"} style={{ padding: "18px 24px", fontSize: 16, maxWidth: 640 }}>
@@ -522,27 +522,36 @@ export function ChatPage() {
                                     <div key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary)", animation: `float 1s ease-in-out ${i * 0.15}s infinite` }} />
                                 ))}
                             </div>
-                            {isSearching && <span style={{ fontSize: 13, color: "var(--primary)", fontWeight: 600 }}>SYNCING WITH EXTERNAL ARCHIVES...</span>}
+                            {isSearching && <span style={{ fontSize: 13, color: "#c4b5fd", fontWeight: 600 }}>LYRA está pesquisando na internet...</span>}
                         </div>
                     )}
                 </div>
 
-                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "center", border: showKeyInput ? "1px solid var(--primary)" : "1px solid transparent", transition: "all 0.3s" }}>
+                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "flex-end", border: showKeyInput ? "1px solid var(--primary)" : "1px solid transparent", transition: "all 0.3s" }}>
                     <button
                         className="btn-ghost"
-                        style={{ padding: 8, color: showKeyInput ? "var(--primary)" : "rgba(255,255,255,0.7)" }}
+                        style={{ padding: 8, color: showKeyInput ? "var(--primary)" : "rgba(255,255,255,0.7)", marginBottom: 4 }}
                         onClick={() => setShowKeyInput(!showKeyInput)}
                         title="System Control Panel"
                     >
                         <Bot size={22} className={showKeyInput ? "animate-pulse" : ""} />
                     </button>
-                    <input
-                        type="text"
+                    <textarea
                         value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleSend()}
-                        placeholder="Transmit neural message..."
+                        onChange={e => {
+                            setInput(e.target.value);
+                            e.target.style.height = "auto";
+                            e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+                        }}
+                        onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend();
+                            }
+                        }}
+                        placeholder="Escreva algo para LYRA... (Shift+Enter para nova linha)"
                         disabled={loading || !hasKey}
+                        rows={1}
                         style={{
                             background: "transparent",
                             border: "none",
@@ -550,10 +559,15 @@ export function ChatPage() {
                             fontSize: 16,
                             padding: "12px 0",
                             flex: 1,
-                            outline: "none"
+                            outline: "none",
+                            resize: "none",
+                            overflowY: "auto",
+                            lineHeight: "1.5",
+                            fontFamily: "inherit",
+                            maxHeight: 160
                         }}
                     />
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 4 }}>
                         <button
                             className="btn-ghost"
                             style={{ padding: 6, color: isTtsEnabled ? "var(--primary)" : "rgba(255,255,255,0.6)" }}

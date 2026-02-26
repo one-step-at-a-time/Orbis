@@ -13,6 +13,7 @@ import { FinancasPage } from './pages/FinancasPage';
 import { AnalisesPage } from './pages/AnalisesPage';
 import { MissoesPage } from './pages/MissoesPage';
 import { GemeoDijitalPage } from './pages/GemeoDijitalPage';
+import { CadernoPage } from './pages/CadernoPage';
 import { LoginPage } from './pages/LoginPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
@@ -71,6 +72,7 @@ export default function App() {
     financas: FinancasPage,
     analises: AnalisesPage,
     gemeodigital: GemeoDijitalPage,
+    caderno: CadernoPage,
   };
   const PageComponent = pages[page] || DashboardPage;
 

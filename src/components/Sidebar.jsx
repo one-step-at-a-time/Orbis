@@ -20,6 +20,7 @@ const NAV_ITEMS = [
     { id: "financas", icon: "DollarSign", label: "Finanças", code: "FN" },
     { id: "analises", icon: "BarChart3", label: "Análises", code: "AN" },
     { id: "gemeodigital", icon: "Brain", label: "Gêmeo Digital", code: "GD" },
+    { id: "caderno", icon: "BookOpen", label: "Caderno", code: "CD" },
 ];
 
 function SidebarNav({ page, setPage, onClose }) {
