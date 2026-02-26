@@ -527,22 +527,31 @@ export function ChatPage() {
                     )}
                 </div>
 
-                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "center", border: showKeyInput ? "1px solid var(--primary)" : "1px solid transparent", transition: "all 0.3s" }}>
+                <div style={{ marginTop: 20, background: "var(--purple)", borderRadius: 16, padding: "8px 16px", display: "flex", gap: 12, alignItems: "flex-end", border: showKeyInput ? "1px solid var(--primary)" : "1px solid transparent", transition: "all 0.3s" }}>
                     <button
                         className="btn-ghost"
-                        style={{ padding: 8, color: showKeyInput ? "var(--primary)" : "rgba(255,255,255,0.7)" }}
+                        style={{ padding: 8, color: showKeyInput ? "var(--primary)" : "rgba(255,255,255,0.7)", marginBottom: 4 }}
                         onClick={() => setShowKeyInput(!showKeyInput)}
                         title="System Control Panel"
                     >
                         <Bot size={22} className={showKeyInput ? "animate-pulse" : ""} />
                     </button>
-                    <input
-                        type="text"
+                    <textarea
                         value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleSend()}
-                        placeholder="Escreva algo para LYRA..."
+                        onChange={e => {
+                            setInput(e.target.value);
+                            e.target.style.height = "auto";
+                            e.target.style.height = Math.min(e.target.scrollHeight, 160) + "px";
+                        }}
+                        onKeyDown={e => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend();
+                            }
+                        }}
+                        placeholder="Escreva algo para LYRA... (Shift+Enter para nova linha)"
                         disabled={loading || !hasKey}
+                        rows={1}
                         style={{
                             background: "transparent",
                             border: "none",
@@ -550,10 +559,15 @@ export function ChatPage() {
                             fontSize: 16,
                             padding: "12px 0",
                             flex: 1,
-                            outline: "none"
+                            outline: "none",
+                            resize: "none",
+                            overflowY: "auto",
+                            lineHeight: "1.5",
+                            fontFamily: "inherit",
+                            maxHeight: 160
                         }}
                     />
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 4 }}>
                         <button
                             className="btn-ghost"
                             style={{ padding: 6, color: isTtsEnabled ? "var(--primary)" : "rgba(255,255,255,0.6)" }}
