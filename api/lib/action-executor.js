@@ -22,22 +22,25 @@ export async function executeServerAction(supabase, actionObj) {
                 prioridade: data.prioridade,
                 dataPrazo: data.dataPrazo,
             });
-            return result.error ? null : `[ LYRA ]: Tarefa "${data.titulo}" criada.`;
+            if (result.error) return `[ ERRO ]: Falha ao criar tarefa "${data.titulo}". Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ Tarefa "${data.titulo}" criada no Orbis!`;
         }
 
         case 'COMPLETE_TASK': {
             const tasks = await findTaskByTitle(supabase, data.titulo);
-            if (tasks.length === 0) return `Nenhuma tarefa encontrada com "${data.titulo}".`;
+            if (tasks.length === 0) return `[ AVISO ]: Nenhuma tarefa encontrada com "${data.titulo}". Verifique o nome e tente novamente.`;
             const task = tasks[0];
             const ok = await completeTask(supabase, task.id);
-            return ok ? `[ LYRA ]: Tarefa "${task.titulo}" concluida!` : 'Erro ao concluir tarefa.';
+            if (!ok) return `[ ERRO ]: Falha ao concluir tarefa "${task.titulo}". Pode ser problema de permissao (RLS).`;
+            return `✅ Tarefa "${task.titulo}" marcada como concluida no Orbis!`;
         }
 
         case 'LOG_HABIT': {
             const result = await logHabitByTitle(supabase, data.titulo);
-            if (!result.found) return `Nenhum habito encontrado com "${data.titulo}".`;
-            if (result.alreadyLogged) return `Habito "${result.titulo}" ja foi registrado hoje!`;
-            return result.error ? 'Erro ao registrar habito.' : `[ LYRA ]: Habito "${result.titulo}" registrado para hoje!`;
+            if (!result.found) return `[ AVISO ]: Nenhum habito encontrado com "${data.titulo}".`;
+            if (result.alreadyLogged) return `[ INFO ]: Habito "${result.titulo}" ja foi registrado hoje!`;
+            if (result.error) return `[ ERRO ]: Falha ao registrar habito. Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ Habito "${result.titulo}" registrado no Orbis!`;
         }
 
         case 'CREATE_FINANCE': {
@@ -48,9 +51,8 @@ export async function executeServerAction(supabase, actionObj) {
                 categoria: data.categoria,
                 data: data.data,
             });
-            return result.error
-                ? null
-                : `[ LYRA ]: ${data.tipo === 'receita' ? 'Receita' : 'Despesa'} de R$${Math.abs(Number(data.valor)).toFixed(2)} registrada.`;
+            if (result.error) return `[ ERRO ]: Falha ao registrar lancamento. Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ ${data.tipo === 'receita' ? 'Receita' : 'Despesa'} de R$${Math.abs(Number(data.valor)).toFixed(2)} (${data.descricao}) registrada no Orbis!`;
         }
 
         case 'CREATE_HABIT': {
@@ -60,7 +62,8 @@ export async function executeServerAction(supabase, actionObj) {
                 icone: data.icone,
                 metaMensal: data.metaMensal,
             });
-            return result.error ? null : `[ LYRA ]: Habito "${data.titulo}" criado!`;
+            if (result.error) return `[ ERRO ]: Falha ao criar habito. Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ Habito "${data.titulo}" criado no Orbis!`;
         }
 
         case 'CREATE_REMINDER': {
@@ -70,7 +73,8 @@ export async function executeServerAction(supabase, actionObj) {
                 importancia: data.importancia,
                 dataHora: data.dataHora,
             });
-            return result.error ? null : `[ LYRA ]: Lembrete "${data.titulo}" criado!`;
+            if (result.error) return `[ ERRO ]: Falha ao criar lembrete. Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ Lembrete "${data.titulo}" criado no Orbis!`;
         }
 
         case 'CREATE_PROJECT': {
@@ -79,7 +83,8 @@ export async function executeServerAction(supabase, actionObj) {
                 descricao: data.descricao,
                 cor: data.cor,
             });
-            return result.error ? null : `[ LYRA ]: Projeto "${data.titulo}" criado!`;
+            if (result.error) return `[ ERRO ]: Falha ao criar projeto. Detalhes: ${result.error.message || 'erro desconhecido'}`;
+            return `✅ Projeto "${data.titulo}" criado no Orbis!`;
         }
 
         default:
