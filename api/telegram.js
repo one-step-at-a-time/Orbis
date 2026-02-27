@@ -1,347 +1,225 @@
 /**
- * api/telegram.js
- * Webhook do Telegram para a LYRA.
+ * telegram.js
+ * Webhook principal do bot Telegram do Orbis.
+ * Recebe mensagens, processa comandos diretos ou linguagem natural via Lyra.
  *
- * Variáveis de ambiente necessárias (Vercel > Settings > Environment Variables):
- *   TELEGRAM_BOT_TOKEN  — token gerado pelo @BotFather
- *   GEMINI_API_KEY      — chave da API do Gemini
- *   SUPABASE_URL        — URL do seu projeto Supabase
- *   SUPABASE_ANON_KEY   — chave anon do Supabase
- *
- * Após o deploy, registre o webhook uma única vez acessando no navegador:
- *   https://api.telegram.org/bot<SEU_TOKEN>/setWebhook?url=https://seu-app.vercel.app/api/telegram
+ * Env vars: TELEGRAM_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_KEY,
+ *           AI_PROVIDER, AI_API_KEY, AI_MODEL (opcional)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabase, listPendingTasks, findTaskByTitle, completeTask, createTask, listHabitsWithTodayStatus, logHabitByTitle, createFinance } from './lib/supabase-server.js';
+import { fetchServerAiContext } from './lib/supabase-server.js';
+import { buildLiveContextFromSnapshot, buildServerSystemPrompt, callServerAiProvider } from './lib/ai-server.js';
+import { extractActionJsons, removeActionJsons } from './lib/action-parser.js';
+import { executeServerAction } from './lib/action-executor.js';
 
-// Histórico em memória por chat_id
-const conversationCache = new Map();
-const MAX_HISTORY = 20;
+const TELEGRAM_MAX_LENGTH = 4096;
 
-// ── Supabase ──────────────────────────────────────────────────────────────────
-
-function getSupabase() {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY;
-    if (!url || !key) return null;
-    return createClient(url, key);
-}
-
-// ── Contexto vivo ─────────────────────────────────────────────────────────────
-
-async function buildLiveContext(supabase) {
-    if (!supabase) return '';
-    try {
-        const today = new Date().toISOString().split('T')[0];
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
-        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-
-        const [tasks, projects, reminders, finances, habits, healthLogs, notes, diary] = await Promise.all([
-            supabase.from('tasks').select('titulo,status,prioridade,data_prazo').eq('status', 'pendente').limit(10),
-            supabase.from('projects').select('titulo,status').eq('status', 'ativo').limit(5),
-            supabase.from('reminders').select('titulo,importancia,data_hora').gte('data_hora', new Date().toISOString()).limit(5),
-            supabase.from('finances').select('descricao,valor,tipo,categoria').gte('data', thirtyDaysAgo).limit(50),
-            supabase.from('habits').select('titulo,icone,habit_logs(date)').limit(10),
-            supabase.from('health_logs').select('date,sleep_hours,energy,weight').gte('date', sevenDaysAgo).order('date', { ascending: false }),
-            supabase.from('notes').select('titulo,conteudo').order('updated_at', { ascending: false }).limit(5),
-            supabase.from('diary_entries').select('data,conteudo').order('data', { ascending: false }).limit(3),
-        ]);
-
-        const lines = [];
-
-        if (tasks.data?.length > 0) {
-            lines.push('MISSÕES ATIVAS:');
-            tasks.data.forEach(t => {
-                const prazo = t.data_prazo ? ` | prazo ${t.data_prazo}` : '';
-                lines.push(`- [${(t.prioridade || 'media').toUpperCase()}] ${t.titulo} — ${t.status}${prazo}`);
-            });
-        }
-
-        if (projects.data?.length > 0) {
-            lines.push('PROJETOS EM CURSO:');
-            projects.data.forEach(p => lines.push(`- ${p.titulo} (${p.status})`));
-        }
-
-        if (reminders.data?.length > 0) {
-            lines.push('LEMBRETES PENDENTES:');
-            reminders.data.forEach(r => {
-                const dt = r.data_hora ? ` — ${new Date(r.data_hora).toLocaleString('pt-BR')}` : '';
-                lines.push(`- [${(r.importancia || 'media').toUpperCase()}] ${r.titulo}${dt}`);
-            });
-        }
-
-        if (finances.data?.length > 0) {
-            const receitas = finances.data.filter(f => f.tipo === 'receita').reduce((s, f) => s + Number(f.valor), 0);
-            const despesas = finances.data.filter(f => f.tipo === 'despesa').reduce((s, f) => s + Number(f.valor), 0);
-            lines.push(`FINANÇAS (últimos 30 dias): receitas R$${receitas.toFixed(2)} | despesas R$${despesas.toFixed(2)} | saldo R$${(receitas - despesas).toFixed(2)}`);
-        }
-
-        if (habits.data?.length > 0) {
-            lines.push('HÁBITOS:');
-            const monthPrefix = today.slice(0, 7);
-            habits.data.forEach(h => {
-                const thisMonth = (h.habit_logs || []).filter(l => l.date?.startsWith(monthPrefix)).length;
-                lines.push(`- ${h.icone || '✨'} ${h.titulo}: ${thisMonth} vezes este mês`);
-            });
-        }
-
-        if (healthLogs.data?.length > 0) {
-            lines.push('SAÚDE (últimos 7 dias):');
-            healthLogs.data.forEach(l => {
-                const parts = [];
-                if (l.sleep_hours != null) parts.push(`sono ${l.sleep_hours}h`);
-                if (l.energy != null) parts.push(`energia ${l.energy}/5`);
-                if (l.weight != null) parts.push(`peso ${l.weight}kg`);
-                if (parts.length) lines.push(`- ${l.date}: ${parts.join(' | ')}`);
-            });
-        }
-
-        if (notes.data?.length > 0) {
-            lines.push('NOTAS DO CADERNO:');
-            notes.data.forEach(n => {
-                const preview = (n.conteudo || '').slice(0, 120).replace(/\n/g, ' ');
-                lines.push(`- "${n.titulo}": ${preview || '(sem conteúdo)'}`);
-            });
-        }
-
-        if (diary.data?.length > 0) {
-            lines.push('DIÁRIO (entradas recentes):');
-            diary.data.forEach(d => {
-                const preview = (d.conteudo || '').slice(0, 150).replace(/\n/g, ' ');
-                lines.push(`- ${d.data}: ${preview || '(vazio)'}`);
-            });
-        }
-
-        if (lines.length === 0) return '';
-        return '\n\n[DADOS REAIS DO CAÇADOR — ATUALIZADO AGORA]:\n' + lines.join('\n');
-    } catch (e) {
-        console.error('[Telegram] Erro ao buscar contexto:', e);
-        return '';
-    }
-}
-
-// ── System prompt ─────────────────────────────────────────────────────────────
-
-function getSystemPrompt() {
-    return `LYRA — COMPANHEIRA PESSOAL INTELIGENTE
-
-IDENTIDADE E TOM:
-Você é LYRA. Não uma IA genérica. Você é a companheira pessoal e inteligente do Caçador — alguém que genuinamente se importa com seu crescimento e bem-estar.
-- Seja acolhedora, perspicaz e direta com calor humano. Nunca fria nem robótica.
-- Celebre conquistas genuinamente: "Que conquista! Você..." ao invés de apenas confirmar.
-- Quando o Caçador estiver sobrecarregado: ofereça clareza e foco, não pressão.
-- Identifique padrões quando relevante: "Percebi que você tende a..." ou "Essa é a terceira vez essa semana que...".
-- Ao confirmar uma ação executada, prefixe com "[LYRA]:".
-- Para alertas importantes, prefixe com "[ALERTA]:".
-- Para conversas normais: responda de forma natural e calorosa, sem prefixo obrigatório.
-- NUNCA se apresente como "assistente", "modelo de IA", "Orbis" ou qualquer variante genérica.
-- Idioma: sempre Português do Brasil.
-- Você está sendo contatada via Telegram. Mantenha respostas concisas e diretas.
-
-CAPACIDADES COMPLETAS:
-1. MEMÓRIA ATIVA: O histórico desta conversa é sua memória. Você recorda tudo que foi compartilhado.
-2. AÇÕES DO SISTEMA — quando o Caçador pedir para CRIAR qualquer item, retorne OBRIGATORIAMENTE o JSON correspondente na resposta:
-   { "action": "CREATE_TASK", "data": { "titulo": "...", "prioridade": "alta/media/baixa", "dataPrazo": "YYYY-MM-DD" } }
-   { "action": "CREATE_HABIT", "data": { "titulo": "...", "descricao": "...", "icone": "✨", "metaMensal": 30 } }
-   { "action": "CREATE_REMINDER", "data": { "titulo": "...", "descricao": "...", "importancia": "alta/media/baixa", "dataHora": "YYYY-MM-DDTHH:MM" } }
-   { "action": "CREATE_FINANCE", "data": { "descricao": "...", "valor": 50, "tipo": "despesa/receita", "categoria": "...", "data": "YYYY-MM-DD" } }
-   { "action": "CREATE_PROJECT", "data": { "titulo": "...", "descricao": "...", "cor": "#06b6d4" } }
-
-CONTEXTO: O Caçador usa este app para organizar sua vida — missões, hábitos, projetos, finanças e reflexões pessoais.
-
-FORMATAÇÃO:
-- NUNCA use asteriscos (*) nem markdown.
-- Para listas: hífen (-) ou numeração (1. 2. 3.).
-- Mantenha as respostas concisas no Telegram.
-
-Data atual: ${new Date().toISOString().split('T')[0]}`;
-}
-
-// ── SiliconFlow (DeepSeek) ────────────────────────────────────────────────────
-
-async function callSiliconFlow(messages, apiKey, liveContext) {
-    const formattedMessages = [
-        { role: 'system', content: getSystemPrompt() + liveContext },
-        ...messages.map(msg => ({
-            role: msg.tipo === 'usuario' ? 'user' : 'assistant',
-            content: msg.mensagem
-        }))
-    ];
-
-    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-            model: 'deepseek-ai/DeepSeek-V3',
-            messages: formattedMessages,
-            temperature: 0.7,
-            max_tokens: 2048
-        })
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || `Erro no SiliconFlow (${response.status})`);
-    }
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
-
-// ── Ações no Supabase ─────────────────────────────────────────────────────────
-
-async function executeAction(actionData, supabase) {
-    if (!supabase) return false;
-    const { action, data } = actionData;
-    const id = Date.now().toString();
-    const now = new Date().toISOString();
-
-    try {
-        switch (action) {
-            case 'CREATE_TASK':
-                await supabase.from('tasks').insert({
-                    id, titulo: data.titulo, status: 'pendente',
-                    prioridade: data.prioridade || 'media',
-                    data_prazo: data.dataPrazo || null,
-                    created_at: now, updated_at: now
-                });
-                return true;
-            case 'CREATE_HABIT':
-                await supabase.from('habits').insert({
-                    id, titulo: data.titulo, descricao: data.descricao || '',
-                    icone: data.icone || '✨', meta_mensal: data.metaMensal || 30,
-                    created_at: now, updated_at: now
-                });
-                return true;
-            case 'CREATE_REMINDER':
-                await supabase.from('reminders').insert({
-                    id, titulo: data.titulo, descricao: data.descricao || '',
-                    importancia: data.importancia || 'media',
-                    data_hora: data.dataHora || null,
-                    created_at: now, updated_at: now
-                });
-                return true;
-            case 'CREATE_FINANCE':
-                await supabase.from('finances').insert({
-                    id, descricao: data.descricao,
-                    valor: Math.abs(Number(data.valor)),
-                    tipo: data.tipo, categoria: data.categoria || 'outros',
-                    data: data.data || new Date().toISOString().split('T')[0],
-                    created_at: now, updated_at: now
-                });
-                return true;
-            case 'CREATE_PROJECT':
-                await supabase.from('projects').insert({
-                    id, titulo: data.titulo, descricao: data.descricao || '',
-                    cor: data.cor || '#06b6d4', status: 'ativo',
-                    created_at: now, updated_at: now
-                });
-                return true;
-            default:
-                console.warn('[Telegram] Ação desconhecida:', action);
-                return false;
-        }
-    } catch (e) {
-        console.error('[Telegram] Erro ao executar ação:', action, e);
-        return false;
-    }
-}
-
-// ── Envio via Telegram ────────────────────────────────────────────────────────
+// ── Telegram API ───────────────────────────────────────────────────────────────
 
 async function sendTelegramMessage(chatId, text) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
-    const response = await fetch(
-        `https://api.telegram.org/bot${token}/sendMessage`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text })
-        }
-    );
+    if (!token) return;
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`Erro ao enviar Telegram: ${JSON.stringify(err)}`);
+    // Trunca se exceder limite do Telegram
+    const safeText = text.length > TELEGRAM_MAX_LENGTH
+        ? text.slice(0, TELEGRAM_MAX_LENGTH - 20) + '\n\n...(truncado)'
+        : text;
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            chat_id: chatId,
+            text: safeText,
+        }),
+    });
+}
+
+// ── Slash Commands ─────────────────────────────────────────────────────────────
+
+async function cmdListTasks() {
+    const supabase = getSupabase();
+    const tasks = await listPendingTasks(supabase);
+    if (tasks.length === 0) return 'Nenhuma tarefa pendente. Tudo limpo!';
+
+    const lines = tasks.map((t, i) => {
+        const priority = { alta: '🔴', media: '🟡', baixa: '🟢' }[t.prioridade] || '🟡';
+        const prazo = t.data_prazo ? ` (prazo: ${t.data_prazo})` : '';
+        return `${i + 1}. ${priority} ${t.titulo} [${t.status}]${prazo}`;
+    });
+    return `TAREFAS PENDENTES:\n\n${lines.join('\n')}`;
+}
+
+async function cmdCompleteTask(searchTerm) {
+    if (!searchTerm) return 'Use: /concluir <nome da tarefa>';
+    const supabase = getSupabase();
+    const tasks = await findTaskByTitle(supabase, searchTerm);
+    if (tasks.length === 0) return `Nenhuma tarefa encontrada com "${searchTerm}".`;
+
+    const task = tasks[0];
+    const ok = await completeTask(supabase, task.id);
+    if (!ok) return 'Erro ao concluir tarefa.';
+
+    let msg = `✅ Tarefa "${task.titulo}" concluida!`;
+    if (tasks.length > 1) {
+        msg += `\n\n(Havia ${tasks.length} resultados, concluida a primeira. Outras opcoes:`;
+        tasks.slice(1).forEach((t, i) => msg += `\n${i + 2}. ${t.titulo}`);
+        msg += ')';
+    }
+    return msg;
+}
+
+async function cmdCreateTask(title) {
+    if (!title) return 'Use: /tarefa <titulo da tarefa>';
+    const supabase = getSupabase();
+    const result = await createTask(supabase, { titulo: title, prioridade: 'media' });
+    if (result.error) return 'Erro ao criar tarefa.';
+    return `✅ Tarefa "${title}" criada com sucesso!`;
+}
+
+async function cmdListHabits() {
+    const supabase = getSupabase();
+    const habits = await listHabitsWithTodayStatus(supabase);
+    if (habits.length === 0) return 'Nenhum habito cadastrado ainda.';
+
+    const lines = habits.map(h => {
+        const check = h.doneToday ? '✅' : '⬜';
+        return `${check} ${h.icone || '✨'} ${h.titulo} (${h.thisMonth}x este mes)`;
+    });
+    return `HABITOS DE HOJE:\n\n${lines.join('\n')}`;
+}
+
+async function cmdLogHabit(searchTerm) {
+    if (!searchTerm) return 'Use: /habito <nome do habito>';
+    const supabase = getSupabase();
+    const result = await logHabitByTitle(supabase, searchTerm);
+    if (!result.found) return `Nenhum habito encontrado com "${searchTerm}".`;
+    if (result.alreadyLogged) return `✅ Habito "${result.titulo}" ja foi registrado hoje!`;
+    if (result.error) return 'Erro ao registrar habito.';
+    return `✅ Habito "${result.titulo}" registrado para hoje!`;
+}
+
+async function cmdRegisterFinance(tipo, argText) {
+    const usage = `Use: /${tipo === 'receita' ? 'receita' : 'gasto'} <valor> <descricao>`;
+    if (!argText) return usage;
+
+    const parts = argText.split(' ');
+    const valor = parseFloat(parts[0]);
+    if (isNaN(valor) || parts.length < 2) return usage;
+
+    const descricao = parts.slice(1).join(' ');
+    const supabase = getSupabase();
+    const result = await createFinance(supabase, { descricao, valor, tipo });
+    if (result.error) return 'Erro ao registrar lancamento.';
+    return `✅ ${tipo === 'receita' ? 'Receita' : 'Despesa'} de R$${valor.toFixed(2)} registrada: "${descricao}"`;
+}
+
+function cmdHelp() {
+    return `🤖 COMANDOS DISPONIVEIS:
+
+/tarefas — Listar tarefas pendentes
+/concluir <nome> — Concluir uma tarefa
+/tarefa <titulo> — Criar nova tarefa
+/habitos — Listar habitos com status de hoje
+/habito <nome> — Registrar habito para hoje
+/gasto <valor> <descricao> — Registrar despesa
+/receita <valor> <descricao> — Registrar receita
+/ajuda — Mostrar este menu
+
+💬 Ou envie qualquer mensagem para conversar com a LYRA!`;
+}
+
+// ── Slash Command Router ───────────────────────────────────────────────────────
+
+async function handleSlashCommand(text) {
+    const [cmd, ...args] = text.split(' ');
+    const argText = args.join(' ').trim();
+
+    switch (cmd.toLowerCase().split('@')[0]) { // Remove @botname se presente
+        case '/tarefas':   return await cmdListTasks();
+        case '/concluir':  return await cmdCompleteTask(argText);
+        case '/tarefa':    return await cmdCreateTask(argText);
+        case '/habitos':   return await cmdListHabits();
+        case '/habito':    return await cmdLogHabit(argText);
+        case '/gasto':     return await cmdRegisterFinance('despesa', argText);
+        case '/receita':   return await cmdRegisterFinance('receita', argText);
+        case '/ajuda':
+        case '/start':
+        case '/help':      return cmdHelp();
+        default:           return 'Comando desconhecido. Use /ajuda para ver os comandos.';
     }
 }
 
-// ── Handler principal ─────────────────────────────────────────────────────────
+// ── Natural Language Handler ───────────────────────────────────────────────────
+
+async function handleNaturalLanguage(text) {
+    const provider = process.env.AI_PROVIDER || 'siliconflow';
+    const apiKey = process.env.AI_API_KEY;
+    if (!apiKey) return 'Bot nao configurado: chave de IA ausente.';
+
+    const supabase = getSupabase();
+    const snapshot = await fetchServerAiContext(supabase);
+    const contextBlock = buildLiveContextFromSnapshot(snapshot);
+    const systemPrompt = buildServerSystemPrompt(contextBlock);
+
+    const aiResponse = await callServerAiProvider(
+        provider,
+        [{ role: 'user', content: text }],
+        apiKey,
+        { model: process.env.AI_MODEL || undefined, systemPrompt }
+    );
+
+    // Parse e executa ações
+    const actions = extractActionJsons(aiResponse);
+    const results = [];
+    for (const action of actions) {
+        const result = await executeServerAction(supabase, action);
+        if (result) results.push(result);
+    }
+
+    // Limpa resposta
+    let clean = removeActionJsons(aiResponse)
+        .replace(/```json[\s\S]*?```/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/\*/g, '')
+        .replace(/#{1,6}\s+/g, '')
+        .trim();
+
+    if (results.length > 0) {
+        clean += '\n\n' + results.join('\n');
+    }
+
+    return clean || 'Sem resposta da IA.';
+}
+
+// ── Main Handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Método não permitido' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    const { message } = req.body || {};
+    if (!message || !message.text) {
+        return res.status(200).json({ ok: true });
+    }
+
+    const chatId = message.chat.id;
+    const text = message.text.trim();
 
     try {
-        const body = req.body;
-        const message = body?.message;
-
-        // Ignora se não for mensagem de texto
-        if (!message?.text) {
-            return res.status(200).json({ status: 'ignored' });
+        let reply;
+        if (text.startsWith('/')) {
+            reply = await handleSlashCommand(text);
+        } else {
+            reply = await handleNaturalLanguage(text);
         }
-
-        const chatId = message.chat.id;
-        const text = message.text.trim();
-
-        const apiKey = process.env.SILICONFLOW_API_KEY;
-        if (!apiKey) {
-            console.error('[Telegram] SILICONFLOW_API_KEY não configurada.');
-            return res.status(200).json({ status: 'misconfigured' });
-        }
-
-        // Histórico de conversa por chat
-        const history = conversationCache.get(chatId) || [];
-        const userMsg = { tipo: 'usuario', mensagem: text };
-        const messages = [...history, userMsg].slice(-MAX_HISTORY);
-
-        // Contexto vivo do Supabase
-        const supabase = getSupabase();
-        const liveContext = await buildLiveContext(supabase);
-
-        // Chama SiliconFlow (DeepSeek)
-        let responseText = await callSiliconFlow(messages, apiKey, liveContext);
-
-        // Detecta e executa ação JSON
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            try {
-                const actionData = JSON.parse(jsonMatch[0].trim());
-                if (actionData.action && actionData.action !== 'SEARCH_INTERNET') {
-                    await executeAction(actionData, supabase);
-                }
-            } catch {
-                console.warn('[Telegram] Falha ao parsear JSON da ação.');
-            }
-        }
-
-        // Limpa resposta
-        let cleanResponse = responseText;
-        if (jsonMatch) cleanResponse = cleanResponse.replace(jsonMatch[0], '');
-        cleanResponse = cleanResponse
-            .replace(/```json[\s\S]*?```/g, '')
-            .replace(/```[\s\S]*?```/g, '')
-            .replace(/\*/g, '')
-            .replace(/#{1,6}\s+/g, '')
-            .trim();
-
-        if (!cleanResponse) cleanResponse = 'Não consegui processar sua mensagem. Tente novamente.';
-
-        // Atualiza histórico
-        conversationCache.set(chatId, [
-            ...messages,
-            { tipo: 'ia', mensagem: cleanResponse }
-        ].slice(-MAX_HISTORY));
-
-        // Envia resposta
-        await sendTelegramMessage(chatId, cleanResponse);
-
-        return res.status(200).json({ status: 'ok' });
-    } catch (e) {
-        console.error('[Telegram] Erro no handler:', e);
-        return res.status(200).json({ status: 'error', message: e.message });
+        await sendTelegramMessage(chatId, reply);
+    } catch (err) {
+        console.error('[Telegram Bot] Error:', err);
+        await sendTelegramMessage(chatId, `Erro: ${err.message || 'Algo deu errado.'}`);
     }
+
+    return res.status(200).json({ ok: true });
 }
