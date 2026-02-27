@@ -175,6 +175,60 @@ export async function fetchTasks() {
     }));
 }
 
+export async function fetchFinances() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('finances').select('*').order('data', { ascending: false });
+    return (data || []).map(f => ({
+        id:        f.id,
+        descricao: f.descricao,
+        valor:     Number(f.valor),
+        tipo:      f.tipo,
+        categoria: f.categoria || 'outros',
+        data:      f.data,
+    }));
+}
+
+export async function fetchHabits() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('habits').select('*, habit_logs(date)').order('created_at', { ascending: false });
+    return (data || []).map(h => ({
+        id:         h.id,
+        titulo:     h.titulo,
+        descricao:  h.descricao || '',
+        icone:      h.icone || '✨',
+        metaMensal: h.meta_mensal || 30,
+        logs:       (h.habit_logs || []).map(l => ({ data: l.date })),
+    }));
+}
+
+export async function fetchProjects() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+    return (data || []).map(p => ({
+        id:        p.id,
+        titulo:    p.titulo,
+        descricao: p.descricao || '',
+        cor:       p.cor || '#06b6d4',
+        status:    p.status || 'ativo',
+    }));
+}
+
+export async function fetchReminders() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('reminders').select('*').order('created_at', { ascending: false });
+    return (data || []).map(r => ({
+        id:          r.id,
+        titulo:      r.titulo,
+        descricao:   r.descricao || '',
+        importancia: r.importancia || 'media',
+        dataHora:    r.data_hora || null,
+    }));
+}
+
 // ── Habits ─────────────────────────────────────────────────────────────────────
 
 export async function syncHabit(habit) {

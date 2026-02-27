@@ -10,6 +10,7 @@ import {
     syncFinance, deleteFinanceSupabase,
     syncProject, deleteProjectSupabase,
     syncReminder, deleteReminderSupabase,
+    fetchTasks, fetchFinances, fetchHabits, fetchProjects, fetchReminders,
 } from '../services/supabaseService';
 
 const DataContext = createContext(null);
@@ -42,6 +43,32 @@ export function DataProvider({ children }) {
     const [projects, setProjects] = useLocalStorage('orbis_projects', MOCK_PROJECTS);
     const [reminders, setReminders] = useLocalStorage('orbis_reminders', MOCK_REMINDERS);
     const [finances, setFinances] = useLocalStorage('orbis_finances', MOCK_FINANCES);
+
+    // ── Pull do Supabase no startup ─────────────────────────────────────────────
+    // Mescla dados remotos com localStorage: IDs novos do Supabase (ex: criados pelo bot)
+    // são adicionados ao estado local. Dados locais não são sobrescritos.
+    useEffect(() => {
+        if (!isSupabaseConfigured()) return;
+        const merge = (local, remote) => {
+            const localIds = new Set(local.map(x => x.id));
+            const newItems = remote.filter(x => !localIds.has(x.id));
+            return newItems.length > 0 ? [...local, ...newItems] : local;
+        };
+        Promise.allSettled([
+            fetchTasks(),
+            fetchFinances(),
+            fetchHabits(),
+            fetchProjects(),
+            fetchReminders(),
+        ]).then(([t, f, h, p, r]) => {
+            if (t.status === 'fulfilled' && t.value.length > 0) setTasks(prev => merge(prev, t.value));
+            if (f.status === 'fulfilled' && f.value.length > 0) setFinances(prev => merge(prev, f.value));
+            if (h.status === 'fulfilled' && h.value.length > 0) setHabits(prev => merge(prev, h.value));
+            if (p.status === 'fulfilled' && p.value.length > 0) setProjects(prev => merge(prev, p.value));
+            if (r.status === 'fulfilled' && r.value.length > 0) setReminders(prev => merge(prev, r.value));
+        }).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // ── Tasks ──────────────────────────────────────────────────────────────────
     const addTask = (task) => {
