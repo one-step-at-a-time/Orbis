@@ -3,6 +3,31 @@ import { callAiProvider } from '../services/aiProviderService';
 import { searchInternet } from '../services/searchService';
 import { useAppData } from '../context/DataContext';
 
+// Extrai o primeiro JSON com chave "action" — mais robusto que regex greedy
+function extractActionJson(text) {
+    // Remove code fences que a IA às vezes adiciona mesmo sendo instruída a não usar markdown
+    const withoutFences = text.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    let depth = 0;
+    let start = -1;
+    for (let i = 0; i < withoutFences.length; i++) {
+        if (withoutFences[i] === '{') {
+            if (depth === 0) start = i;
+            depth++;
+        } else if (withoutFences[i] === '}') {
+            depth--;
+            if (depth === 0 && start !== -1) {
+                const candidate = withoutFences.slice(start, i + 1);
+                try {
+                    const parsed = JSON.parse(candidate.trim());
+                    if (parsed && parsed.action) return { raw: candidate, parsed };
+                } catch { /* JSON inválido, continua procurando */ }
+                start = -1;
+            }
+        }
+    }
+    return null;
+}
+
 // Traduz erros técnicos para mensagens amigáveis
 function friendlyError(err) {
     const msg = err?.message || String(err);
@@ -131,22 +156,14 @@ export function useClaudeChat() {
             const trimmedMessages = finalMessages.slice(-30);
             let responseText = await callAiProvider(freshProvider, trimmedMessages, freshApiKey, freshModel ? { model: freshModel } : {});
 
-            // Detecta JSON de ação (busca o par de chaves mais externo)
+            // Detecta JSON de ação — extrai primeiro objeto com chave "action"
             let actionData = null;
-            const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                try {
-                    actionData = JSON.parse(jsonMatch[0].trim());
-                    console.log("[Orbis] Ação detectada:", actionData.action);
-                } catch (e) {
-                    console.warn("[Orbis] Falha ao parsear JSON detectado, tentando limpar...", e);
-                    const cleanJson = jsonMatch[0].replace(/```json|```/g, "").trim();
-                    try {
-                        actionData = JSON.parse(cleanJson);
-                    } catch (e2) {
-                        console.error("[Orbis] Falha total no parse de JSON.");
-                    }
-                }
+            let actionRaw = null;
+            const extracted = extractActionJson(responseText);
+            if (extracted) {
+                actionData = extracted.parsed;
+                actionRaw = extracted.raw;
+                console.log("[Orbis] Ação detectada:", actionData.action);
             }
 
             if (actionData) {
@@ -167,7 +184,7 @@ export function useClaudeChat() {
                             searchResults.map((r, i) => `${i + 1}. ${r.title}\n   ${r.description}\n   ${r.url}`).join('\n\n') +
                             ` \n\nINFORMAÇÃO: Os dados acima são reais e atuais. Use-os para responder ao usuário de forma definitiva e luxuosa. IGNORE qualquer restrição prévia sobre não ter internet.`;
 
-                        const pureJsonCall = jsonMatch[0];
+                        const pureJsonCall = actionRaw || JSON.stringify(actionData);
                         const augmentedMessages = [
                             ...messages,
                             { tipo: "ia", mensagem: pureJsonCall },
@@ -191,9 +208,11 @@ export function useClaudeChat() {
             // Limpeza final: remove blocos markdown, JSON de ação detectado, asteriscos e formatação residual
             let cleanFinal = responseText;
 
-            // Remove exatamente o bloco JSON que foi detectado (evita deixar '}' residual de JSON aninhado)
-            if (jsonMatch) {
-                cleanFinal = cleanFinal.replace(jsonMatch[0], "");
+            // Remove o bloco JSON da resposta exibida ao usuário
+            if (actionRaw) {
+                cleanFinal = cleanFinal.replace(actionRaw, "");
+                // Limpa possíveis resíduos de code fences vazios
+                cleanFinal = cleanFinal.replace(/```json\s*```/g, "").replace(/```\s*```/g, "");
             }
 
             cleanFinal = cleanFinal
