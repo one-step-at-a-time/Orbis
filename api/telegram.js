@@ -130,6 +130,27 @@ function cmdHelp() {
 💬 Ou envie qualquer mensagem para conversar com a LYRA!`;
 }
 
+function cmdStatus() {
+    const vars = {
+        'TELEGRAM_BOT_TOKEN': !!process.env.TELEGRAM_BOT_TOKEN,
+        'SUPABASE_URL': !!process.env.SUPABASE_URL,
+        'URL_SUPABASE': !!process.env.URL_SUPABASE,
+        'SUPABASE_SERVICE_KEY': !!process.env.SUPABASE_SERVICE_KEY,
+        'SUPABASE_ANON_KEY': !!process.env.SUPABASE_ANON_KEY,
+        'AI_API_KEY': !!process.env.AI_API_KEY,
+        'CHAVE_API_SILICONFLOW': !!process.env.CHAVE_API_SILICONFLOW,
+        'AI_PROVIDER': process.env.AI_PROVIDER || '(nao definido, default: siliconflow)',
+        'AI_MODEL': process.env.AI_MODEL || '(nao definido, usa default)',
+    };
+
+    const lines = Object.entries(vars).map(([k, v]) => {
+        if (typeof v === 'boolean') return `${v ? '✅' : '❌'} ${k}`;
+        return `ℹ️ ${k}: ${v}`;
+    });
+
+    return `🔧 STATUS DAS ENV VARS:\n\n${lines.join('\n')}`;
+}
+
 // ── Slash Command Router ───────────────────────────────────────────────────────
 
 async function handleSlashCommand(text) {
@@ -147,6 +168,7 @@ async function handleSlashCommand(text) {
         case '/ajuda':
         case '/start':
         case '/help':      return cmdHelp();
+        case '/status':    return cmdStatus();
         default:           return 'Comando desconhecido. Use /ajuda para ver os comandos.';
     }
 }
