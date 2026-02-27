@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppData } from '../context/DataContext';
 
 export function NewTaskModal({ isOpen, onClose }) {
@@ -59,6 +59,85 @@ export function NewTaskModal({ isOpen, onClose }) {
             <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
                 <button type="button" className="btn-ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Criar Tarefa</button>
+            </div>
+        </form>
+    );
+}
+
+export function EditTaskModal({ isOpen, onClose, task }) {
+    const { updateTask, projects } = useAppData();
+    const [form, setForm] = useState(null);
+
+    // Sincroniza o form quando a tarefa muda
+    useEffect(() => {
+        if (task) {
+            setForm({
+                titulo:    task.titulo    || "",
+                descricao: task.descricao || "",
+                prioridade: task.prioridade || "media",
+                dataPrazo: task.dataPrazo || "",
+                projetoId: task.projetoId || "",
+                status:    task.status    || "pendente",
+            });
+        }
+    }, [task]);
+
+    if (!form) return null;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!form.titulo) return;
+        const selectedProj = projects.find(p => p.id === form.projetoId);
+        updateTask(task.id, {
+            ...form,
+            projeto: selectedProj ? { titulo: selectedProj.titulo, cor: selectedProj.cor } : (task.projeto || null),
+        });
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+                <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Título da Tarefa</label>
+                <input autoFocus required type="text" value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} placeholder="Ex: Terminar relatório" />
+            </div>
+            <div>
+                <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Descrição (opcional)</label>
+                <textarea value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Detalhes sobre a tarefa..." rows={3} />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                    <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Status</label>
+                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                        <option value="pendente">Pendente</option>
+                        <option value="fazendo">Fazendo</option>
+                        <option value="concluida">Concluída</option>
+                        <option value="atrasada">Atrasada</option>
+                    </select>
+                </div>
+                <div>
+                    <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Prioridade</label>
+                    <select value={form.prioridade} onChange={e => setForm({ ...form, prioridade: e.target.value })}>
+                        <option value="baixa">Baixa</option>
+                        <option value="media">Média</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Prazo</label>
+                <input type="date" value={form.dataPrazo} onChange={e => setForm({ ...form, dataPrazo: e.target.value })} />
+            </div>
+            <div>
+                <label style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 6, display: "block" }}>Projeto</label>
+                <select value={form.projetoId} onChange={e => setForm({ ...form, projetoId: e.target.value })}>
+                    <option value="">Nenhum</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.titulo}</option>)}
+                </select>
+            </div>
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+                <button type="button" className="btn-ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: "center" }}>Salvar</button>
             </div>
         </form>
     );

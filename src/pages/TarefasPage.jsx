@@ -3,12 +3,12 @@ import { useAutoAnimate } from '@formkit/auto-animate/react';
 import Typewriter from 'typewriter-effect';
 import {
     LayoutList, Columns, Plus, Circle, Clock, CheckCircle2, AlertCircle,
-    Sparkles, Send, Bot, User, Loader, Settings, Check, Trash2
+    Sparkles, Send, Bot, User, Loader, Settings, Check, Trash2, Pencil
 } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
-import { NewTaskModal } from '../components/Modals';
+import { NewTaskModal, EditTaskModal } from '../components/Modals';
 import { formatDate } from '../utils/formatters';
 import { useAppData } from '../context/DataContext';
 import { usePlayer } from '../context/PlayerContext';
@@ -194,14 +194,81 @@ function StatusBadge({ status }) {
     return <Badge color={s.color} bg={s.bg}>{s.label}</Badge>;
 }
 
+// ── TaskItem (fora do componente pai para evitar remontagem a cada render) ────
+
+const StatusIconMap = { pendente: Circle, fazendo: Clock, concluida: CheckCircle2, atrasada: AlertCircle };
+
+function TaskItem({ task, onToggle, onEdit, onDelete }) {
+    const SIcon = StatusIconMap[task.status] || Circle;
+    const done  = task.status === "concluida";
+
+    return (
+        <div
+            className="card"
+            style={{ padding: 16, opacity: done ? 0.6 : 1, cursor: "grab" }}
+            draggable="true"
+            onDragStart={e => { e.dataTransfer.setData("taskId", task.id); e.currentTarget.style.opacity = "0.4"; }}
+            onDragEnd={e   => { e.currentTarget.style.opacity = "1"; }}
+        >
+            <div style={{ display: "flex", gap: 12 }}>
+                <button
+                    onClick={e => { e.stopPropagation(); onToggle(task.id); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: done ? "#22c55e" : "var(--text-muted)", marginTop: 2, flexShrink: 0 }}
+                >
+                    <SIcon size={20} />
+                </button>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <h4 style={{ fontWeight: 600, fontSize: 14, textDecoration: done ? "line-through" : "none", color: done ? "var(--text-muted)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {task.titulo}
+                        </h4>
+                        <PriorityBadge priority={task.prioridade} />
+                    </div>
+                    {task.descricao && <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>{task.descricao}</p>}
+                    <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <StatusBadge status={task.status} />
+                        {task.dataPrazo && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatDate(task.dataPrazo)}</span>}
+                        {task.projeto && (
+                            <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: `${task.projeto.cor}18`, color: task.projeto.cor, fontWeight: 600 }}>
+                                {task.projeto.titulo}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
+                    <button
+                        onClick={e => { e.stopPropagation(); onEdit(task); }}
+                        title="Editar tarefa"
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-dim)", padding: 4, borderRadius: 6, display: "flex", transition: "color 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "var(--primary)"}
+                        onMouseLeave={e => e.currentTarget.style.color = "var(--text-dim)"}
+                    >
+                        <Pencil size={14} />
+                    </button>
+                    <button
+                        onClick={e => { e.stopPropagation(); onDelete(task.id); }}
+                        title="Excluir tarefa"
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-dim)", padding: 4, borderRadius: 6, display: "flex", transition: "color 0.15s" }}
+                        onMouseEnter={e => e.currentTarget.style.color = "#ef4444"}
+                        onMouseLeave={e => e.currentTarget.style.color = "var(--text-dim)"}
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function TarefasPage() {
-    const { tasks, updateTask, addTask } = useAppData();
+    const { tasks, updateTask, addTask, deleteTask } = useAppData();
     const { gainXP } = usePlayer();
     const [view, setView]       = useState("list");
     const [filter, setFilter]   = useState("todas");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingTask,  setEditingTask]  = useState(null);
     const [listParent] = useAutoAnimate();
 
     // ── Tabs ──────────────────────────────────────────────────────────────────
@@ -273,8 +340,6 @@ export function TarefasPage() {
         return true;
     });
 
-    const StatusIcon = { pendente: Circle, fazendo: Clock, concluida: CheckCircle2, atrasada: AlertCircle };
-
     // ── Handler do chat ───────────────────────────────────────────────────────
     async function handleSendTaskChat(text) {
         const msg = (text || chatInput).trim();
@@ -336,49 +401,6 @@ export function TarefasPage() {
             setChatLoading(false);
         }
     }
-
-    // ── TaskItem ──────────────────────────────────────────────────────────────
-    const TaskItem = ({ task }) => {
-        const SIcon = StatusIcon[task.status] || Circle;
-        const done  = task.status === "concluida";
-
-        return (
-            <div
-                className="card"
-                style={{ padding: 16, opacity: done ? 0.6 : 1, cursor: "grab" }}
-                draggable="true"
-                onDragStart={e => { e.dataTransfer.setData("taskId", task.id); e.currentTarget.style.opacity = "0.4"; }}
-                onDragEnd={e   => { e.currentTarget.style.opacity = "1"; }}
-            >
-                <div style={{ display: "flex", gap: 12 }}>
-                    <button
-                        onClick={e => { e.stopPropagation(); toggleTask(task.id); }}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: done ? "#22c55e" : "var(--text-muted)", marginTop: 2, flexShrink: 0 }}
-                    >
-                        <SIcon size={20} />
-                    </button>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                            <h4 style={{ fontWeight: 600, fontSize: 14, textDecoration: done ? "line-through" : "none", color: done ? "var(--text-muted)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                {task.titulo}
-                            </h4>
-                            <PriorityBadge priority={task.prioridade} />
-                        </div>
-                        {task.descricao && <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>{task.descricao}</p>}
-                        <div style={{ display: "flex", gap: 10, marginTop: 8, alignItems: "center", flexWrap: "wrap" }}>
-                            <StatusBadge status={task.status} />
-                            {task.dataPrazo && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>{formatDate(task.dataPrazo)}</span>}
-                            {task.projeto && (
-                                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: `${task.projeto.cor}18`, color: task.projeto.cor, fontWeight: 600 }}>
-                                    {task.projeto.titulo}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     const kanbanCols = [
         { key: "pendente",  label: "Para Fazer", color: "#f59e0b" },
@@ -448,7 +470,15 @@ export function TarefasPage() {
                             <div ref={listParent} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                 {filtered.length === 0 ? (
                                     <p style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>Nenhuma tarefa encontrada</p>
-                                ) : filtered.map(t => <TaskItem key={t.id} task={t} />)}
+                                ) : filtered.map(t => (
+                                    <TaskItem
+                                        key={t.id}
+                                        task={t}
+                                        onToggle={toggleTask}
+                                        onEdit={setEditingTask}
+                                        onDelete={deleteTask}
+                                    />
+                                ))}
                             </div>
                         </>
                     ) : (
@@ -470,7 +500,15 @@ export function TarefasPage() {
                                         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>({tasks.filter(t => t.status === col.key).length})</span>
                                     </div>
                                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                        {tasks.filter(t => t.status === col.key).map(t => <TaskItem key={t.id} task={t} />)}
+                                        {tasks.filter(t => t.status === col.key).map(t => (
+                                            <TaskItem
+                                                key={t.id}
+                                                task={t}
+                                                onToggle={toggleTask}
+                                                onEdit={setEditingTask}
+                                                onDelete={deleteTask}
+                                            />
+                                        ))}
                                     </div>
                                 </div>
                             ))}
@@ -699,6 +737,10 @@ export function TarefasPage() {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova Tarefa">
                 <NewTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            </Modal>
+
+            <Modal isOpen={!!editingTask} onClose={() => setEditingTask(null)} title="Editar Tarefa">
+                <EditTaskModal isOpen={!!editingTask} onClose={() => setEditingTask(null)} task={editingTask} />
             </Modal>
         </div>
     );
