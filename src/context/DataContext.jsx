@@ -45,15 +45,37 @@ export function DataProvider({ children }) {
     const [finances, setFinances] = useLocalStorage('orbis_finances', MOCK_FINANCES);
 
     // ── Pull do Supabase no startup ─────────────────────────────────────────────
-    // Mescla dados remotos com localStorage: IDs novos do Supabase (ex: criados pelo bot)
-    // são adicionados ao estado local. Dados locais não são sobrescritos.
+    // Mescla dados remotos com localStorage:
+    // - IDs novos do Supabase (ex: criados pelo bot) são adicionados ao estado local.
+    // - Para tarefas: status e prioridade são atualizados se diferirem (ex: bot concluiu).
+    // - Outros campos locais não são sobrescritos.
     useEffect(() => {
         if (!isSupabaseConfigured()) return;
+
+        // Merge simples: só adiciona itens novos
         const merge = (local, remote) => {
             const localIds = new Set(local.map(x => x.id));
             const newItems = remote.filter(x => !localIds.has(x.id));
             return newItems.length > 0 ? [...local, ...newItems] : local;
         };
+
+        // Merge de tarefas: adiciona novas + atualiza status/prioridade de existentes
+        const mergeTasks = (local, remote) => {
+            const remoteMap = new Map(remote.map(t => [t.id, t]));
+            const updated = local.map(t => {
+                const r = remoteMap.get(t.id);
+                if (!r) return t;
+                // Aplica atualizações do servidor para status e prioridade
+                if (r.status !== t.status || r.prioridade !== t.prioridade) {
+                    return { ...t, status: r.status, prioridade: r.prioridade };
+                }
+                return t;
+            });
+            const localIds = new Set(local.map(t => t.id));
+            const newItems = remote.filter(t => !localIds.has(t.id));
+            return newItems.length > 0 ? [...updated, ...newItems] : updated;
+        };
+
         Promise.allSettled([
             fetchTasks(),
             fetchFinances(),
@@ -61,7 +83,7 @@ export function DataProvider({ children }) {
             fetchProjects(),
             fetchReminders(),
         ]).then(([t, f, h, p, r]) => {
-            if (t.status === 'fulfilled' && t.value.length > 0) setTasks(prev => merge(prev, t.value));
+            if (t.status === 'fulfilled' && t.value.length > 0) setTasks(prev => mergeTasks(prev, t.value));
             if (f.status === 'fulfilled' && f.value.length > 0) setFinances(prev => merge(prev, f.value));
             if (h.status === 'fulfilled' && h.value.length > 0) setHabits(prev => merge(prev, h.value));
             if (p.status === 'fulfilled' && p.value.length > 0) setProjects(prev => merge(prev, p.value));
