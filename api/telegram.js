@@ -155,7 +155,7 @@ async function handleSlashCommand(text) {
 
 async function handleNaturalLanguage(text) {
     const provider = process.env.AI_PROVIDER || 'siliconflow';
-    const apiKey = process.env.AI_API_KEY;
+    const apiKey = process.env.AI_API_KEY || process.env.CHAVE_API_SILICONFLOW;
     if (!apiKey) return 'Bot nao configurado: chave de IA ausente.';
 
     const supabase = getSupabase();

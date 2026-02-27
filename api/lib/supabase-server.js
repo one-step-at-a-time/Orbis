@@ -11,8 +11,8 @@ let _client = null;
 
 export function getSupabase() {
     if (_client) return _client;
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_KEY;
+    const url = process.env.SUPABASE_URL || process.env.URL_SUPABASE;
+    const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
     if (!url || !key) throw new Error('SUPABASE_URL ou SUPABASE_SERVICE_KEY não configurados.');
     _client = createClient(url, key);
     return _client;
