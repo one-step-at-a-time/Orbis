@@ -43,7 +43,24 @@ function getAiConfig() {
     return { provider, key, model };
 }
 
-function buildFinanceContext(finances) {
+function buildWishContext(wishes) {
+    if (!wishes || wishes.length === 0) return '';
+    const pendentes = wishes.filter(w => w.status !== 'comprado');
+    if (pendentes.length === 0) return '';
+    const total = pendentes.reduce((s, w) => s + (Number(w.preco) || 0), 0);
+    const prioOrder = { alta: 0, media: 1, baixa: 2 };
+    const sorted = [...pendentes].sort((a, b) => (prioOrder[a.prioridade] ?? 1) - (prioOrder[b.prioridade] ?? 1));
+    const lines = [`LISTA DE DESEJOS (${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''}, total estimado R$${total.toFixed(2)}):`];
+    sorted.slice(0, 10).forEach(w => {
+        const prio = w.prioridade?.toUpperCase() || 'MEDIA';
+        const preco = w.preco ? ` · R$${Number(w.preco).toFixed(2)}` : '';
+        const mes = w.mes ? ` · ${w.mes}` : '';
+        lines.push(`  - [id:${w.id}] [${prio}] ${w.titulo}${preco} · ${w.categoria || 'outros'}${mes}`);
+    });
+    return lines.join('\n');
+}
+
+function buildFinanceContext(finances, wishes) {
     if (!finances || finances.length === 0) return 'Nenhum lançamento registrado ainda.';
 
     const despesas = finances.filter(f => f.tipo === 'despesa');
@@ -88,6 +105,9 @@ function buildFinanceContext(finances) {
         });
     }
 
+    const wishBlock = buildWishContext(wishes);
+    if (wishBlock) lines.push('', wishBlock);
+
     return lines.join('\n');
 }
 
@@ -115,7 +135,17 @@ Quando o Caçador mencionar qualquer gasto ou receita (ex: "gastei R$50 em uber"
 - Contextualize em relação ao histórico (ex: "Esse gasto representa 15% do seu total de transporte.")
 
 Categorias padrão: alimentação, transporte, moradia, saúde, lazer, educação, vestuário, serviços, outros.
+
+LISTA DE DESEJOS — INTEGRAÇÃO:
+A lista de desejos do Caçador está incluída no contexto (se houver itens). Use-a para:
+1. PROJEÇÃO: Se perguntado sobre quando conseguirá comprar um item, calcule: preço ÷ (receitas - despesas mensais) = meses necessários. Citar o nome do item e o prazo estimado.
+2. PRIORIDADE: Sugira qual item comprar primeiro considerando prioridade definida e saldo atual.
+3. AUTO-COMPLETAR: Se o Caçador mencionar que comprou algo que existe na lista (nome similar), emita ao final:
+   {"action": "COMPLETE_WISH", "data": {"id": "<id exato do item>", "titulo": "<titulo>"}}
+   E confirme: "[ SISTEMA ]: Item '<titulo>' marcado como comprado na sua lista de desejos!"
+   Use o id exato conforme aparece no contexto (formato: id:XXXX).
 `;
+
 
 // ── Helpers: extrai e remove JSONs de ação da resposta da IA ─────────────────
 
@@ -203,7 +233,7 @@ const ANIM_CSS = `
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export function FinancasPage() {
-    const { finances, addFinance, deleteFinance } = useAppData();
+    const { finances, addFinance, deleteFinance, wishes, updateWish } = useAppData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [financesParent] = useAutoAnimate();
 
@@ -358,7 +388,7 @@ export function FinancasPage() {
 
         try {
             // Injeta contexto financeiro atualizado em TODA mensagem para manter a IA atualizada
-            const finCtx = buildFinanceContext(finances);
+            const finCtx = buildFinanceContext(finances, wishes);
             const ctxPrefix = `[CONTEXTO FINANCEIRO ATUALIZADO DO CAÇADOR]:\n${finCtx}\n\n---\nPergunta: `;
 
             // Limita a 14 mensagens (7 trocas) para controlar uso de tokens e evitar erros de cota
@@ -375,7 +405,7 @@ export function FinancasPage() {
                 systemPromptAddon: FINANCE_SYSTEM_ADDON,
             });
 
-            // 1. Processa CREATE_FINANCE antes de limpar — auto-registra lançamentos
+            // 1. Processa ações antes de limpar
             const actions = extractActionJsons(response);
             const today = new Date().toISOString().split('T')[0];
             for (const action of actions) {
@@ -397,6 +427,21 @@ export function FinancasPage() {
                     if (!isDuplicate) {
                         addFinance(entry);
                         setAutoCreated(entry);
+                        setTimeout(() => setAutoCreated(null), 5000);
+                    }
+                }
+
+                if (action.action === 'COMPLETE_WISH' && action.data) {
+                    const d = action.data;
+                    const wish = wishes.find(w =>
+                        w.status !== 'comprado' && (
+                            w.id === d.id ||
+                            (d.titulo && w.titulo.toLowerCase().includes(d.titulo.toLowerCase()))
+                        )
+                    );
+                    if (wish) {
+                        updateWish(wish.id, { status: 'comprado' });
+                        setAutoCreated({ tipo: 'wish', descricao: wish.titulo, valor: wish.preco || 0 });
                         setTimeout(() => setAutoCreated(null), 5000);
                     }
                 }

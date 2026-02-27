@@ -10,6 +10,8 @@ export const MOCK_REMINDERS = [];
 
 export const MOCK_FINANCES = [];
 
+export const MOCK_WISHES = [];
+
 export const MOCK_HISTORY = [
     { mes: "Set", taxa: 0, receitas: 0, despesas: 0 },
     { mes: "Out", taxa: 0, receitas: 0, despesas: 0 },

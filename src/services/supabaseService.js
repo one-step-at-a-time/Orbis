@@ -110,6 +110,21 @@
  *   created_at  timestamptz default now(),
  *   updated_at  timestamptz default now()
  * );
+ *
+ * -- Lista de Desejos
+ * create table if not exists wishes (
+ *   id          text      primary key,
+ *   titulo      text      not null,
+ *   descricao   text,
+ *   preco       numeric(12,2),
+ *   categoria   text      default 'outros',
+ *   mes         text,
+ *   prioridade  text      default 'media',
+ *   status      text      default 'desejado',
+ *   link        text,
+ *   created_at  timestamptz default now(),
+ *   updated_at  timestamptz default now()
+ * );
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -331,6 +346,48 @@ export async function deleteReminderSupabase(id) {
     const supabase = getClient();
     if (!supabase) return;
     await supabase.from('reminders').delete().eq('id', id);
+}
+
+// ── Wishes (Lista de Desejos) ──────────────────────────────────────────────────
+
+export async function syncWish(wish) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('wishes').upsert({
+        id:         wish.id,
+        titulo:     wish.titulo,
+        descricao:  wish.descricao  || null,
+        preco:      wish.preco      || null,
+        categoria:  wish.categoria  || 'outros',
+        mes:        wish.mes        || null,
+        prioridade: wish.prioridade || 'media',
+        status:     wish.status     || 'desejado',
+        link:       wish.link       || null,
+        updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+}
+
+export async function deleteWishSupabase(id) {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('wishes').delete().eq('id', id);
+}
+
+export async function fetchWishes() {
+    const supabase = getClient();
+    if (!supabase) return [];
+    const { data } = await supabase.from('wishes').select('*').order('created_at', { ascending: true });
+    return (data || []).map(w => ({
+        id:         w.id,
+        titulo:     w.titulo,
+        descricao:  w.descricao  || '',
+        preco:      w.preco      ? Number(w.preco) : null,
+        categoria:  w.categoria  || 'outros',
+        mes:        w.mes        || '',
+        prioridade: w.prioridade || 'media',
+        status:     w.status     || 'desejado',
+        link:       w.link       || '',
+    }));
 }
 
 // ── Chat Messages ──────────────────────────────────────────────────────────────

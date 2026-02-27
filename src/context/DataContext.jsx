@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import {
-    MOCK_TASKS, MOCK_HABITS, MOCK_PROJECTS, MOCK_REMINDERS, MOCK_FINANCES
+    MOCK_TASKS, MOCK_HABITS, MOCK_PROJECTS, MOCK_REMINDERS, MOCK_FINANCES, MOCK_WISHES
 } from '../utils/mockData';
 import {
     isSupabaseConfigured,
@@ -10,7 +10,8 @@ import {
     syncFinance, deleteFinanceSupabase,
     syncProject, deleteProjectSupabase,
     syncReminder, deleteReminderSupabase,
-    fetchTasks, fetchFinances, fetchHabits, fetchProjects, fetchReminders,
+    syncWish, deleteWishSupabase,
+    fetchTasks, fetchFinances, fetchHabits, fetchProjects, fetchReminders, fetchWishes,
 } from '../services/supabaseService';
 
 const DataContext = createContext(null);
@@ -43,6 +44,7 @@ export function DataProvider({ children }) {
     const [projects, setProjects] = useLocalStorage('orbis_projects', MOCK_PROJECTS);
     const [reminders, setReminders] = useLocalStorage('orbis_reminders', MOCK_REMINDERS);
     const [finances, setFinances] = useLocalStorage('orbis_finances', MOCK_FINANCES);
+    const [wishes, setWishes] = useLocalStorage('orbis_wishes', MOCK_WISHES);
 
     // ── Pull do Supabase no startup ─────────────────────────────────────────────
     // Mescla dados remotos com localStorage:
@@ -82,12 +84,14 @@ export function DataProvider({ children }) {
             fetchHabits(),
             fetchProjects(),
             fetchReminders(),
-        ]).then(([t, f, h, p, r]) => {
+            fetchWishes(),
+        ]).then(([t, f, h, p, r, w]) => {
             if (t.status === 'fulfilled' && t.value.length > 0) setTasks(prev => mergeTasks(prev, t.value));
             if (f.status === 'fulfilled' && f.value.length > 0) setFinances(prev => merge(prev, f.value));
             if (h.status === 'fulfilled' && h.value.length > 0) setHabits(prev => merge(prev, h.value));
             if (p.status === 'fulfilled' && p.value.length > 0) setProjects(prev => merge(prev, p.value));
             if (r.status === 'fulfilled' && r.value.length > 0) setReminders(prev => merge(prev, r.value));
+            if (w.status === 'fulfilled' && w.value.length > 0) setWishes(prev => merge(prev, w.value));
         }).catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -175,6 +179,28 @@ export function DataProvider({ children }) {
         bg(() => deleteReminderSupabase(id));
     };
 
+    // ── Wishes ─────────────────────────────────────────────────────────────────
+    const addWish = (wish) => {
+        const id = newId();
+        const newWish = { status: 'desejado', prioridade: 'media', ...wish, id };
+        setWishes(prev => [...prev, newWish]);
+        bg(() => syncWish(newWish));
+    };
+
+    const updateWish = (id, updates) => {
+        setWishes(prev => prev.map(w => {
+            if (w.id !== id) return w;
+            const updated = { ...w, ...updates };
+            bg(() => syncWish(updated));
+            return updated;
+        }));
+    };
+
+    const deleteWish = (id) => {
+        setWishes(prev => prev.filter(w => w.id !== id));
+        bg(() => deleteWishSupabase(id));
+    };
+
     // ── Finances ───────────────────────────────────────────────────────────────
     const addFinance = (entry) => {
         const id = newId();
@@ -194,7 +220,8 @@ export function DataProvider({ children }) {
             habits, addHabit, addHabitLog, deleteHabit, setHabits,
             projects, addProject, updateProject, deleteProject,
             reminders, addReminder, deleteReminder,
-            finances, addFinance, deleteFinance
+            finances, addFinance, deleteFinance,
+            wishes, addWish, updateWish, deleteWish,
         }}>
             {children}
         </DataContext.Provider>

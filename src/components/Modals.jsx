@@ -322,3 +322,86 @@ export function NewFinanceModal({ isOpen, onClose }) {
     );
 }
 
+// ── NewWishModal ──────────────────────────────────────────────────────────────
+
+export function NewWishModal({ isOpen, onClose, initial }) {
+    const { addWish, updateWish } = useAppData();
+    const isEdit = !!initial?.id;
+    const empty = { titulo: '', descricao: '', preco: '', categoria: 'outros', mes: '', prioridade: 'media', link: '' };
+    const [wish, setWish] = useState(empty);
+
+    useEffect(() => {
+        if (isOpen) setWish(initial ? { ...empty, ...initial, preco: initial.preco ?? '' } : empty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, initial]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!wish.titulo.trim()) return;
+        const payload = { ...wish, preco: wish.preco !== '' ? parseFloat(wish.preco) : null };
+        if (isEdit) updateWish(initial.id, payload);
+        else addWish(payload);
+        onClose();
+    };
+
+    const field = (label, content) => (
+        <div>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5, display: 'block', letterSpacing: '0.05em' }}>{label}</label>
+            {content}
+        </div>
+    );
+
+    return (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {field('Título *', (
+                <input autoFocus required type="text" value={wish.titulo}
+                    onChange={e => setWish({ ...wish, titulo: e.target.value })}
+                    placeholder="Ex: Mesa para home office" />
+            ))}
+            {field('Descrição', (
+                <input type="text" value={wish.descricao}
+                    onChange={e => setWish({ ...wish, descricao: e.target.value })}
+                    placeholder="Detalhes, modelo preferido..." />
+            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {field('Preço estimado (R$)', (
+                    <input type="number" step="0.01" min="0" value={wish.preco}
+                        onChange={e => setWish({ ...wish, preco: e.target.value })}
+                        placeholder="0,00" />
+                ))}
+                {field('Mês planejado', (
+                    <input type="month" value={wish.mes}
+                        onChange={e => setWish({ ...wish, mes: e.target.value })} />
+                ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {field('Categoria', (
+                    <select value={wish.categoria} onChange={e => setWish({ ...wish, categoria: e.target.value })}>
+                        {[['casa','🏠 Casa'],['eletronicos','💻 Eletrônicos'],['pessoal','👤 Pessoal'],['saude','❤️ Saúde'],['lazer','🎮 Lazer'],['moda','👗 Moda'],['outros','📦 Outros']].map(([v,l]) => (
+                            <option key={v} value={v}>{l}</option>
+                        ))}
+                    </select>
+                ))}
+                {field('Prioridade', (
+                    <select value={wish.prioridade} onChange={e => setWish({ ...wish, prioridade: e.target.value })}>
+                        <option value="alta">🔴 Alta</option>
+                        <option value="media">🟡 Média</option>
+                        <option value="baixa">🟢 Baixa</option>
+                    </select>
+                ))}
+            </div>
+            {field('Link de compra (opcional)', (
+                <input type="url" value={wish.link}
+                    onChange={e => setWish({ ...wish, link: e.target.value })}
+                    placeholder="https://amazon.com.br/..." />
+            ))}
+            <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                <button type="button" className="btn-ghost" onClick={onClose} style={{ flex: 1, justifyContent: 'center' }}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2, justifyContent: 'center' }}>
+                    {isEdit ? 'Salvar alterações' : 'Adicionar à lista'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
