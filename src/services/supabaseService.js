@@ -120,9 +120,23 @@ let _client = null;
 let _clientUrl = null;
 let _clientKey = null;
 
+// Lê valor do localStorage, desfazendo JSON.stringify se necessário
+function readLsRaw(key) {
+    const v = localStorage.getItem(key);
+    if (!v) return '';
+    try { const parsed = JSON.parse(v); return typeof parsed === 'string' ? parsed : v; }
+    catch { return v; }
+}
+
+// Retorna URL e key, priorizando localStorage → env vars do Vite (build-time)
+function getSupabaseCredentials() {
+    const url = readLsRaw('orbis_supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
+    const key = readLsRaw('orbis_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    return { url, key };
+}
+
 function getClient() {
-    const url = localStorage.getItem('orbis_supabase_url');
-    const key = localStorage.getItem('orbis_supabase_anon_key');
+    const { url, key } = getSupabaseCredentials();
     if (!url || !key) return null;
     // Reutiliza instância se as credenciais não mudaram
     if (_client && _clientUrl === url && _clientKey === key) return _client;
@@ -133,10 +147,8 @@ function getClient() {
 }
 
 export function isSupabaseConfigured() {
-    return !!(
-        localStorage.getItem('orbis_supabase_url') &&
-        localStorage.getItem('orbis_supabase_anon_key')
-    );
+    const { url, key } = getSupabaseCredentials();
+    return !!(url && key);
 }
 
 // ── Tasks ──────────────────────────────────────────────────────────────────────
