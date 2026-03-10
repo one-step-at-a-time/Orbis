@@ -74,6 +74,13 @@ export function ChatPage() {
     const [tempDbUrl, setTempDbUrl] = useState(() => readKey('orbis_supabase_url') || '');
     const [tempDbKey, setTempDbKey] = useState(() => readKey('orbis_supabase_anon_key') || '');
     const [showKeyInput, setShowKeyInput] = useState(!hasKey);
+
+    // Abre o painel de config automaticamente quando hasKey muda para false
+    // (ex: usuário troca o provider sem ter chave salva para o novo)
+    useEffect(() => {
+        if (!hasKey) setShowKeyInput(true);
+    }, [hasKey]);
+
     const [typingMsgId, setTypingMsgId] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [isTtsEnabled, setIsTtsEnabled] = useState(false);

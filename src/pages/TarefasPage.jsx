@@ -39,15 +39,17 @@ function getAiConfig() {
 }
 
 function _findActionJsonSpans(text) {
+    // Remove code fences antes de parsear — espelha o fix do useClaudeChat.js (commit 2b81766)
+    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
     const spans = [];
     const marker = /\{\s*"action"\s*:/g;
     let match;
-    while ((match = marker.exec(text)) !== null) {
+    while ((match = marker.exec(cleaned)) !== null) {
         const start = match.index;
         let depth = 0, j = start;
-        while (j < text.length) {
-            if (text[j] === '{') depth++;
-            else if (text[j] === '}') {
+        while (j < cleaned.length) {
+            if (cleaned[j] === '{') depth++;
+            else if (cleaned[j] === '}') {
                 depth--;
                 if (depth === 0) { spans.push([start, j + 1]); break; }
             }
@@ -58,8 +60,9 @@ function _findActionJsonSpans(text) {
 }
 
 function extractActionJsons(text) {
+    const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
     return _findActionJsonSpans(text).map(([s, e]) => {
-        try { return JSON.parse(text.slice(s, e)); } catch { return null; }
+        try { return JSON.parse(cleaned.slice(s, e)); } catch { return null; }
     }).filter(Boolean);
 }
 

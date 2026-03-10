@@ -10,13 +10,15 @@
  * create table if not exists tasks (
  *   id          text      primary key,
  *   titulo      text      not null,
+ *   descricao   text,
  *   status      text      default 'pendente',
  *   prioridade  text      default 'media',
  *   data_prazo  date,
- *   projeto     text,
+ *   projeto     text,     -- armazenado como JSON: { titulo, cor }
  *   created_at  timestamptz default now(),
  *   updated_at  timestamptz default now()
  * );
+ * -- Migration: ALTER TABLE tasks ADD COLUMN IF NOT EXISTS descricao text;
  *
  * -- Hábitos
  * create table if not exists habits (
@@ -129,6 +131,14 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+// Parse seguro: retorna fallback se str for nulo ou JSON inválido
+function safeJsonParse(str, fallback = null) {
+    if (!str) return fallback;
+    try { return JSON.parse(str); } catch { return fallback; }
+}
+
 // ── Cliente ────────────────────────────────────────────────────────────────────
 
 let _client = null;
@@ -174,10 +184,12 @@ export async function syncTask(task) {
     await supabase.from('tasks').upsert({
         id:         task.id,
         titulo:     task.titulo,
+        descricao:  task.descricao  || null,
         status:     task.status     || 'pendente',
         prioridade: task.prioridade || 'media',
         data_prazo: task.dataPrazo  || null,
-        projeto:    task.projeto    || null,
+        // projeto é { titulo, cor } — serializado como JSON para coluna text
+        projeto:    task.projeto ? JSON.stringify(task.projeto) : null,
         updated_at: new Date().toISOString(),
     }, { onConflict: 'id' });
 }
@@ -195,10 +207,12 @@ export async function fetchTasks() {
     return (data || []).map(t => ({
         id:         t.id,
         titulo:     t.titulo,
+        descricao:  t.descricao  || '',
         status:     t.status,
         prioridade: t.prioridade,
         dataPrazo:  t.data_prazo,
-        projeto:    t.projeto,
+        // projeto foi serializado como JSON; parse de volta para { titulo, cor }
+        projeto:    safeJsonParse(t.projeto),
     }));
 }
 
@@ -270,10 +284,12 @@ export async function syncHabit(habit) {
         updated_at: new Date().toISOString(),
     }, { onConflict: 'id' });
 
+    // Delete-then-insert garante que dias desmarcados sejam removidos do Supabase.
+    // Upsert sozinho nunca deleta — logs fantasmas voltariam no próximo startup.
+    await supabase.from('habit_logs').delete().eq('habit_id', habit.id);
     if (habit.logs && habit.logs.length > 0) {
-        await supabase.from('habit_logs').upsert(
-            habit.logs.map(l => ({ habit_id: habit.id, date: l.data })),
-            { onConflict: 'habit_id,date' }
+        await supabase.from('habit_logs').insert(
+            habit.logs.map(l => ({ habit_id: habit.id, date: l.data }))
         );
     }
 }
