@@ -16,6 +16,11 @@ dist-ssr
 testsprite_tests/tmp
 .testsprite
 
+# Environment variables (never commit secrets)
+.env
+.env.*
+*.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
