@@ -105,12 +105,13 @@ export function DataProvider({ children }) {
     };
 
     const updateTask = (id, updates) => {
+        let synced = null;
         setTasks(prev => prev.map(t => {
             if (t.id !== id) return t;
-            const updated = { ...t, ...updates };
-            bg(() => syncTask(updated));
-            return updated;
+            synced = { ...t, ...updates };
+            return synced;
         }));
+        if (synced) bg(() => syncTask(synced));
     };
 
     const deleteTask = (id) => {
@@ -132,16 +133,17 @@ export function DataProvider({ children }) {
     };
 
     const addHabitLog = (habitId, date) => {
+        let synced = null;
         setHabits(prev => prev.map(h => {
             if (h.id !== habitId) return h;
             const hasDate = h.logs.some(l => l.data === date);
-            const updated = {
+            synced = {
                 ...h,
                 logs: hasDate ? h.logs.filter(l => l.data !== date) : [...h.logs, { data: date }]
             };
-            bg(() => syncHabit(updated));
-            return updated;
+            return synced;
         }));
+        if (synced) bg(() => syncHabit(synced));
     };
 
     // ── Projects ───────────────────────────────────────────────────────────────
@@ -153,12 +155,13 @@ export function DataProvider({ children }) {
     };
 
     const updateProject = (id, updates) => {
+        let synced = null;
         setProjects(prev => prev.map(p => {
             if (p.id !== id) return p;
-            const updated = { ...p, ...updates };
-            bg(() => syncProject(updated));
-            return updated;
+            synced = { ...p, ...updates };
+            return synced;
         }));
+        if (synced) bg(() => syncProject(synced));
     };
 
     const deleteProject = (id) => {
@@ -188,12 +191,13 @@ export function DataProvider({ children }) {
     };
 
     const updateWish = (id, updates) => {
+        let synced = null;
         setWishes(prev => prev.map(w => {
             if (w.id !== id) return w;
-            const updated = { ...w, ...updates };
-            bg(() => syncWish(updated));
-            return updated;
+            synced = { ...w, ...updates };
+            return synced;
         }));
+        if (synced) bg(() => syncWish(synced));
     };
 
     const deleteWish = (id) => {
