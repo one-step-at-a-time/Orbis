@@ -551,10 +551,24 @@ export const getSession = () => {
 export const onAuthChange = (cb) => {
     const supabase = getClient();
     if (!supabase) {
-        cb(null);
+        cb('SIGNED_OUT', null);
         return { data: { subscription: { unsubscribe: () => {} } } };
     }
-    return supabase.auth.onAuthStateChange((_e, session) => cb(session));
+    return supabase.auth.onAuthStateChange((event, session) => cb(event, session));
+};
+
+export const resetPassword = (email) => {
+    const supabase = getClient();
+    if (!supabase) return Promise.reject(new Error('Supabase não configurado.'));
+    return supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+    });
+};
+
+export const updatePassword = (newPassword) => {
+    const supabase = getClient();
+    if (!supabase) return Promise.reject(new Error('Supabase não configurado.'));
+    return supabase.auth.updateUser({ password: newPassword });
 };
 
 // ── Perfil Hunter ──────────────────────────────────────────────────────────────

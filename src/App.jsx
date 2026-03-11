@@ -17,6 +17,7 @@ import { CadernoPage } from './pages/CadernoPage';
 import { DesejosPage } from './pages/DesejosPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
 import { NotificationTray } from './components/NotificationTray';
@@ -25,7 +26,7 @@ import { FocoWidget } from './components/FocoWidget';
 import { BackgroundBeams, Spotlight, ScanlineOverlay } from './components/AceternityUI';
 
 export default function App() {
-  const { session, profile, saveProfile, logout, loading } = useAppAuth();
+  const { session, profile, saveProfile, logout, loading, needsPasswordReset, clearPasswordReset } = useAppAuth();
   const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -53,6 +54,15 @@ export default function App() {
           </div>
           <p style={{ fontFamily: 'var(--font-system)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.2em' }}>INICIALIZANDO...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Redefinição de senha (link do e-mail de recuperação)
+  if (needsPasswordReset) {
+    return (
+      <div className="bg-noise">
+        <ResetPasswordPage onDone={clearPasswordReset} />
       </div>
     );
   }

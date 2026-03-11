@@ -13,11 +13,15 @@ export function AuthProvider({ children }) {
     const [session, setSession] = useState(undefined);
     const [profile, setProfile] = useState(null);
     const [profileLoading, setProfileLoading] = useState(false);
+    const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
     // Inicializa sessão e escuta mudanças
     useEffect(() => {
         getSession().then(({ data }) => setSession(data.session ?? null));
-        const { data: { subscription } } = onAuthChange(setSession);
+        const { data: { subscription } } = onAuthChange((event, session) => {
+            setSession(session ?? null);
+            if (event === 'PASSWORD_RECOVERY') setNeedsPasswordReset(true);
+        });
         return () => subscription.unsubscribe();
     }, []);
 
@@ -69,6 +73,8 @@ export function AuthProvider({ children }) {
             saveProfile,
             logout,
             loading: session === undefined || profileLoading,
+            needsPasswordReset,
+            clearPasswordReset: () => setNeedsPasswordReset(false),
         }}>
             {children}
         </AuthContext.Provider>
