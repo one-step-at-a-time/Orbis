@@ -560,9 +560,9 @@ export const onAuthChange = (cb) => {
 export const resetPassword = (email) => {
     const supabase = getClient();
     if (!supabase) return Promise.reject(new Error('Supabase não configurado.'));
-    return supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
-    });
+    // Usa VITE_APP_URL se definido (produção), senão usa a origem atual (localhost)
+    const redirectTo = import.meta.env.VITE_APP_URL || window.location.origin;
+    return supabase.auth.resetPasswordForEmail(email, { redirectTo });
 };
 
 export const updatePassword = (newPassword) => {
