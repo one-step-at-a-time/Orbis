@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, CheckCircle2, Clock, Trash2, ChevronDown, ChevronUp, Circle } from 'lucide-react';
 import { ProgressBar } from '../components/Common';
 import { useAppData } from '../context/DataContext';
+import { usePlayer } from '../context/PlayerContext';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
 import { NewProjectModal } from '../components/Modals';
@@ -18,6 +19,7 @@ const STATUS_STYLE = {
 
 export function ProjetosPage() {
     const { projects, tasks, updateProject, deleteProject, addTask, updateTask } = useAppData();
+    const { gainXP, gainXPAmount } = usePlayer();
     const [isModalOpen, setIsModalOpen]   = useState(false);
     const [expandedId, setExpandedId]     = useState(null);
     const [newTaskTitles, setNewTaskTitles] = useState({});
@@ -71,7 +73,15 @@ export function ProjetosPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                                         {/* Status clicável */}
                                         <button
-                                            onClick={() => updateProject(p.id, { status: STATUS_CYCLE[p.status] })}
+                                            onClick={() => {
+                                                const next = STATUS_CYCLE[p.status];
+                                                updateProject(p.id, { status: next });
+                                                // Bônus de XP ao concluir o projeto
+                                                if (next === 'concluido') {
+                                                    const bonus = 300 + (done * 50);
+                                                    gainXPAmount(bonus);
+                                                }
+                                            }}
                                             title="Clique para mudar status"
                                             style={{
                                                 padding: '3px 9px',
@@ -173,7 +183,11 @@ export function ProjetosPage() {
                                                     <div
                                                         key={t.id}
                                                         style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 5, background: concluida ? 'rgba(0,0,0,0)' : 'rgba(0,240,255,0.02)', cursor: 'pointer', transition: 'background 0.15s' }}
-                                                        onClick={() => updateTask(t.id, { status: concluida ? 'pendente' : 'concluida' })}
+                                                        onClick={() => {
+                                                            const completing = !concluida;
+                                                            updateTask(t.id, { status: completing ? 'concluida' : 'pendente' });
+                                                            if (completing) gainXP(t.prioridade || 'media');
+                                                        }}
                                                     >
                                                         {concluida
                                                             ? <CheckCircle2 size={15} color="var(--success)" style={{ flexShrink: 0 }} />
