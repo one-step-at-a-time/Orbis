@@ -16,6 +16,7 @@ import { GemeoDijitalPage } from './pages/GemeoDijitalPage';
 import { CadernoPage } from './pages/CadernoPage';
 import { DesejosPage } from './pages/DesejosPage';
 import { LoginPage } from './pages/LoginPage';
+import { ProfileSetupPage } from './pages/ProfileSetupPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchOverlay } from './components/SearchOverlay';
 import { NotificationTray } from './components/NotificationTray';
@@ -24,22 +25,10 @@ import { FocoWidget } from './components/FocoWidget';
 import { BackgroundBeams, Spotlight, ScanlineOverlay } from './components/AceternityUI';
 
 export default function App() {
-  const { user, login, logout } = useAppAuth();
+  const { session, profile, saveProfile, logout, loading } = useAppAuth();
   const [page, setPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-
-  // Auto-login: se há perfil salvo, entra direto sem mostrar login
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem('orbis_hunter_profile');
-      if (raw) {
-        const profile = JSON.parse(raw);
-        if (profile?.nome) login(profile);
-      }
-    } catch { }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   React.useEffect(() => {
     const handleK = (e) => {
@@ -54,10 +43,34 @@ export default function App() {
 
 
 
-  if (!user) {
+  // Aguarda getSession() + carregamento do perfil
+  if (loading) {
+    return (
+      <div style={{ background: '#000', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, var(--primary), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', boxShadow: '0 0 20px rgba(0,240,255,0.4)', animation: 'float 3s ease-in-out infinite' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+          </div>
+          <p style={{ fontFamily: 'var(--font-system)', fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.2em' }}>INICIALIZANDO...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sem sessão → LoginPage
+  if (!session) {
     return (
       <div className="bg-noise">
-        <LoginPage onLogin={login} />
+        <LoginPage />
+      </div>
+    );
+  }
+
+  // Sessão ativa mas sem perfil → onboarding
+  if (!profile) {
+    return (
+      <div className="bg-noise">
+        <ProfileSetupPage onSave={saveProfile} userId={session.user.id} />
       </div>
     );
   }
@@ -124,7 +137,7 @@ export default function App() {
         <Spotlight className="z-0" fill="rgba(0, 240, 255, 0.06)" />
         {/* Holographic scanner line */}
         <div className="holographic-scanner" />
-        <Header user={user} onLogout={() => { localStorage.removeItem('orbis_hunter_profile'); logout(); }} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
+        <Header user={profile} onLogout={logout} onMenuToggle={() => setSidebarOpen(true)} onSearchToggle={() => setSearchOpen(true)} />
         <main style={{ flex: 1, padding: 24, maxWidth: 1200, width: "100%", margin: "0 auto", display: "flex", flexDirection: "column", overflowY: "auto", minHeight: 0 }}>
           <AnimatePresence mode="wait">
             <motion.div

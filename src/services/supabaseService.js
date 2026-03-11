@@ -522,6 +522,60 @@ export async function fetchDiaryEntries() {
     return data || [];
 }
 
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
+export const signIn = (email, pw) => {
+    const supabase = getClient();
+    if (!supabase) return Promise.reject(new Error('Supabase não configurado. Verifique as credenciais.'));
+    return supabase.auth.signInWithPassword({ email, password: pw });
+};
+
+export const signUp = (email, pw) => {
+    const supabase = getClient();
+    if (!supabase) return Promise.reject(new Error('Supabase não configurado. Verifique as credenciais.'));
+    return supabase.auth.signUp({ email, password: pw });
+};
+
+export const signOut = () => {
+    const supabase = getClient();
+    if (!supabase) return Promise.resolve();
+    return supabase.auth.signOut();
+};
+
+export const getSession = () => {
+    const supabase = getClient();
+    if (!supabase) return Promise.resolve({ data: { session: null } });
+    return supabase.auth.getSession();
+};
+
+export const onAuthChange = (cb) => {
+    const supabase = getClient();
+    if (!supabase) {
+        cb(null);
+        return { data: { subscription: { unsubscribe: () => {} } } };
+    }
+    return supabase.auth.onAuthStateChange((_e, session) => cb(session));
+};
+
+// ── Perfil Hunter ──────────────────────────────────────────────────────────────
+
+export const upsertProfile = async (userId, profile) => {
+    const supabase = getClient();
+    if (!supabase) return;
+    await supabase.from('profiles').upsert(
+        { user_id: userId, nome: profile.nome, classe: profile.classe, objetivo: profile.objetivo || null },
+        { onConflict: 'user_id' }
+    );
+};
+
+export const fetchProfile = async (userId) => {
+    const supabase = getClient();
+    if (!supabase) return null;
+    const { data } = await supabase
+        .from('profiles').select('nome, classe, objetivo').eq('user_id', userId).single();
+    return data ? { nome: data.nome, classe: data.classe, objetivo: data.objetivo || '' } : null;
+};
+
 // ── AI Context Snapshot ────────────────────────────────────────────────────────
 /**
  * Busca um snapshot compacto de todos os dados para injetar no prompt da IA.
