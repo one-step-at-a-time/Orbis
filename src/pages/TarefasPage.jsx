@@ -122,7 +122,7 @@ function buildTaskContext(tasks) {
     if (active.length > 0) {
         lines.push('- Tarefas ativas (urgência > prioridade):');
         active.forEach(t => {
-            lines.push(`  • [${t.status}][${t.prioridade || 'media'}] ${t.titulo}${t.dataPrazo ? ` | prazo: ${t.dataPrazo}` : ''}`);
+            lines.push(`  • [id:${t.id}][${t.status}][${t.prioridade || 'media'}] ${t.titulo}${t.dataPrazo ? ` | prazo: ${t.dataPrazo}` : ''}`);
         });
     }
 
@@ -149,6 +149,15 @@ Quando o Caçador pedir para criar uma tarefa (ex: "cria uma tarefa para X", "no
 - Após o JSON, em nova linha: "[ SISTEMA ]: Missão criada — [título]."
 - Se não houver prazo definido, omita o campo "dataPrazo".
 Prioridades: alta (urgente), media (importante), baixa (desejável).
+
+ATUALIZAÇÃO DE STATUS DE TAREFAS:
+Quando o Caçador pedir para concluir, dar baixa, marcar como feita, ou alterar o status de uma tarefa:
+- Escreva PRIMEIRO toda a sua resposta em texto limpo.
+- AO FINAL da resposta, para CADA tarefa a atualizar, emita em linha separada:
+  { "action": "UPDATE_TASK", "data": { "id": "ID_EXATO_DA_TAREFA", "status": "concluida|pendente|fazendo|atrasada" } }
+- O "id" deve ser o ID exato da tarefa conforme aparece no contexto.
+- Após os JSONs, em nova linha: "[ SISTEMA ]: Status atualizado — [título]."
+- Status disponíveis: pendente, fazendo, concluida, atrasada.
 `;
 
 // ── Quick actions ─────────────────────────────────────────────────────────────
@@ -373,7 +382,7 @@ export function TarefasPage() {
                 systemPromptAddon: TASK_SYSTEM_ADDON,
             });
 
-            // Processa CREATE_TASK
+            // Processa ações da IA
             const actions = extractActionJsons(response);
             for (const action of actions) {
                 if (action.action === 'CREATE_TASK' && action.data) {
@@ -385,6 +394,15 @@ export function TarefasPage() {
                         ...(d.dataPrazo ? { dataPrazo: d.dataPrazo } : {}),
                         status: 'pendente',
                     });
+                }
+                if (action.action === 'UPDATE_TASK' && action.data?.id) {
+                    const d = action.data;
+                    const validStatus = ['pendente', 'fazendo', 'concluida', 'atrasada'];
+                    const patch = {};
+                    if (d.status && validStatus.includes(d.status)) patch.status = d.status;
+                    if (d.prioridade && ['alta', 'media', 'baixa'].includes(d.prioridade)) patch.prioridade = d.prioridade;
+                    if (d.titulo) patch.titulo = d.titulo;
+                    if (Object.keys(patch).length > 0) updateTask(d.id, patch);
                 }
             }
 
