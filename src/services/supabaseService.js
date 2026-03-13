@@ -522,6 +522,34 @@ export async function fetchDiaryEntries() {
     return data || [];
 }
 
+// ── App Settings (chaves de API) ───────────────────────────────────────────────
+
+/**
+ * Salva uma ou mais configurações na tabela app_settings.
+ * Ex: saveSettings({ orbis_gemini_key: 'xxx', orbis_brave_key: 'yyy' })
+ */
+export async function saveSettings(settings = {}) {
+    const supabase = getClient();
+    if (!supabase) return;
+    const rows = Object.entries(settings)
+        .filter(([, v]) => v !== null && v !== undefined && v !== '')
+        .map(([key, value]) => ({ key, value: String(value), updated_at: new Date().toISOString() }));
+    if (rows.length === 0) return;
+    await supabase.from('app_settings').upsert(rows, { onConflict: 'key' });
+}
+
+/**
+ * Busca todas as configurações salvas no Supabase.
+ * Retorna um objeto { key: value, ... }
+ */
+export async function fetchSettings() {
+    const supabase = getClient();
+    if (!supabase) return {};
+    const { data } = await supabase.from('app_settings').select('key, value');
+    if (!data) return {};
+    return Object.fromEntries(data.map(r => [r.key, r.value]));
+}
+
 // ── Auth ───────────────────────────────────────────────────────────────────────
 
 export const signIn = (email, pw) => {

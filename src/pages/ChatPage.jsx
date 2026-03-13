@@ -3,7 +3,7 @@ import Typewriter from 'typewriter-effect';
 import { User, Bot, Mic, MicOff, Send, AlertCircle, Key, X, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { useClaudeChat } from '../hooks/useClaudeChat';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { syncChatMessage, fetchRecentChatMessages, isSupabaseConfigured } from '../services/supabaseService';
+import { syncChatMessage, fetchRecentChatMessages, isSupabaseConfigured, saveSettings, fetchSettings } from '../services/supabaseService';
 
 // Helper para ler do localStorage diretamente (com fallback para valores sem JSON)
 function readKey(name) {
@@ -103,6 +103,28 @@ export function ChatPage() {
         if (messages.length > 1) return; // já tem histórico local
         fetchRecentChatMessages(100).then(remote => {
             if (remote.length > 1) setMessages(remote);
+        }).catch(console.error);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Recovery de chaves de API: se não há chave no localStorage, tenta restaurar do Supabase
+    useEffect(() => {
+        if (!isSupabaseConfigured()) return;
+        const KEYS = [
+            'orbis_gemini_key', 'orbis_zhipu_key', 'orbis_siliconflow_key', 'orbis_openrouter_key',
+            'orbis_brave_key', 'orbis_elevenlabs_key', 'orbis_ai_provider', 'orbis_ai_model',
+        ];
+        const missing = KEYS.filter(k => !readKey(k));
+        if (missing.length === 0) return; // tudo já está no localStorage
+        fetchSettings().then(remote => {
+            let restored = 0;
+            missing.forEach(k => {
+                if (remote[k]) {
+                    window.localStorage.setItem(k, JSON.stringify(remote[k]));
+                    restored++;
+                }
+            });
+            if (restored > 0) window.location.reload(); // recarrega para aplicar as chaves
         }).catch(console.error);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -249,6 +271,7 @@ export function ChatPage() {
     const handleSaveKey = (specificKey, category) => {
         const key = specificKey || tempKey.trim();
         if (key.length > 5) {
+            const toSync = {};
             try {
                 if (category === 'ia') {
                     const storageKey = storedProvider === 'gemini'
@@ -260,10 +283,18 @@ export function ChatPage() {
                                 : 'orbis_siliconflow_key';
                     window.localStorage.setItem(storageKey, JSON.stringify(key));
                     window.localStorage.setItem('orbis_ai_provider', JSON.stringify(storedProvider));
+                    toSync[storageKey] = key;
+                    toSync['orbis_ai_provider'] = storedProvider;
                 } else if (category === 'search') {
                     window.localStorage.setItem('orbis_brave_key', JSON.stringify(key));
+                    toSync['orbis_brave_key'] = key;
                 } else if (category === 'voz') {
                     window.localStorage.setItem('orbis_elevenlabs_key', JSON.stringify(key));
+                    toSync['orbis_elevenlabs_key'] = key;
+                }
+                // Sincroniza com Supabase em background (fire-and-forget)
+                if (isSupabaseConfigured() && Object.keys(toSync).length > 0) {
+                    saveSettings(toSync).catch(console.error);
                 }
             } catch (e) {
                 alert("Erro ao salvar: " + e.message);
