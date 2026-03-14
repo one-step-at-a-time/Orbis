@@ -280,6 +280,7 @@ export function TarefasPage() {
     const { gainXP } = usePlayer();
     const [view, setView]       = useState("list");
     const [filter, setFilter]   = useState("todas");
+    const [tableSort, setTableSort] = useState("todas");
     const [calDate, setCalDate] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask,  setEditingTask]  = useState(null);
@@ -481,30 +482,126 @@ export function TarefasPage() {
             {/* ── TAREFAS ── */}
             {activeTab === 'tarefas' && (
                 <>
-                    {view === "list" ? (
-                        <>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                {["todas", "pendentes", "concluidas", "atrasadas"].map(f => (
-                                    <button key={f} onClick={() => setFilter(f)} className={filter === f ? "tab-active" : "tab-inactive"} style={{ padding: "8px 16px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 500, fontSize: 13, textTransform: "capitalize" }}>
-                                        {f}
-                                    </button>
-                                ))}
+                    {view === "list" ? (() => {
+                        const sortViews = [
+                            { key: 'todas',      label: 'Todas as Tarefas' },
+                            { key: 'prazo',      label: 'Por Prazo'        },
+                            { key: 'status',     label: 'Por Status'       },
+                            { key: 'prioridade', label: 'Por Prioridade'   },
+                        ];
+                        const prioOrder = { alta: 0, media: 1, baixa: 2 };
+                        const stOrder   = { atrasada: 0, fazendo: 1, pendente: 2, concluida: 3 };
+                        const sorted = [...tasks].sort((a, b) => {
+                            if (tableSort === 'prazo') {
+                                if (!a.dataPrazo && !b.dataPrazo) return 0;
+                                if (!a.dataPrazo) return 1;
+                                if (!b.dataPrazo) return -1;
+                                return a.dataPrazo.localeCompare(b.dataPrazo);
+                            }
+                            if (tableSort === 'status')     return (stOrder[a.status] ?? 9) - (stOrder[b.status] ?? 9);
+                            if (tableSort === 'prioridade') return (prioOrder[a.prioridade] ?? 9) - (prioOrder[b.prioridade] ?? 9);
+                            return 0;
+                        });
+                        const colStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 1, fontFamily: "'JetBrains Mono', monospace", padding: '10px 12px', textTransform: 'uppercase' };
+                        const gridCols = '130px 1fr 110px 130px 120px 56px';
+                        return (
+                            <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+                                {/* Filtros estilo Notion */}
+                                <div style={{ display: 'flex', gap: 2, padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', overflowX: 'auto' }}>
+                                    {sortViews.map(v => (
+                                        <button key={v.key} onClick={() => setTableSort(v.key)} style={{
+                                            padding: '6px 14px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                                            fontSize: 12, fontWeight: tableSort === v.key ? 700 : 400,
+                                            background: tableSort === v.key ? 'rgba(99,102,241,0.15)' : 'transparent',
+                                            color: tableSort === v.key ? 'var(--primary)' : 'var(--text-muted)',
+                                            whiteSpace: 'nowrap', transition: 'all 0.15s',
+                                        }}>{v.label}</button>
+                                    ))}
+                                </div>
+                                {/* Cabeçalho da tabela */}
+                                <div style={{ display: 'grid', gridTemplateColumns: gridCols, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <span style={colStyle}>Status</span>
+                                    <span style={colStyle}>Tarefa</span>
+                                    <span style={colStyle}>Prazo</span>
+                                    <span style={colStyle}>Projeto</span>
+                                    <span style={colStyle}>Prioridade</span>
+                                    <span style={colStyle} />
+                                </div>
+                                {/* Linhas */}
+                                {sorted.length === 0 ? (
+                                    <p style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)', fontSize: 13 }}>Nenhuma tarefa cadastrada</p>
+                                ) : sorted.map((t, i) => {
+                                    const done = t.status === 'concluida';
+                                    const SIcon = StatusIconMap[t.status] || Circle;
+                                    return (
+                                        <div key={t.id} style={{
+                                            display: 'grid', gridTemplateColumns: gridCols,
+                                            alignItems: 'center',
+                                            borderBottom: i < sorted.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                                            background: 'transparent', transition: 'background 0.12s',
+                                            opacity: done ? 0.6 : 1,
+                                        }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >
+                                            {/* Status */}
+                                            <div style={{ padding: '10px 12px' }}>
+                                                <button onClick={() => toggleTask(t.id)} title="Alternar status" style={{ background: 'none', border: 'none', cursor: 'pointer', color: done ? '#22c55e' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, padding: 0 }}>
+                                                    <SIcon size={15} />
+                                                    <StatusBadge status={t.status} />
+                                                </button>
+                                            </div>
+                                            {/* Tarefa */}
+                                            <div style={{ padding: '10px 12px', overflow: 'hidden' }}>
+                                                <span style={{ fontSize: 13, fontWeight: 500, color: done ? 'var(--text-muted)' : 'var(--text)', textDecoration: done ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{t.titulo}</span>
+                                                {t.descricao && <span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginTop: 1 }}>{t.descricao}</span>}
+                                            </div>
+                                            {/* Prazo */}
+                                            <div style={{ padding: '10px 12px' }}>
+                                                <span style={{ fontSize: 12, color: t.status === 'atrasada' ? '#ef4444' : 'var(--text-dim)' }}>
+                                                    {t.dataPrazo ? formatDate(t.dataPrazo) : <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>}
+                                                </span>
+                                            </div>
+                                            {/* Projeto */}
+                                            <div style={{ padding: '10px 12px' }}>
+                                                {t.projeto
+                                                    ? <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: `${t.projeto.cor}18`, color: t.projeto.cor, fontWeight: 600 }}>{t.projeto.titulo}</span>
+                                                    : <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>Sem grupo</span>
+                                                }
+                                            </div>
+                                            {/* Prioridade */}
+                                            <div style={{ padding: '10px 12px' }}>
+                                                <PriorityBadge priority={t.prioridade} />
+                                            </div>
+                                            {/* Ações */}
+                                            <div style={{ padding: '10px 8px', display: 'flex', gap: 2 }}>
+                                                <button onClick={() => setEditingTask(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 4, borderRadius: 4, display: 'flex' }} title="Editar"
+                                                    onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                                                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
+                                                ><Pencil size={13} /></button>
+                                                <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 4, borderRadius: 4, display: 'flex' }} title="Excluir"
+                                                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
+                                                ><Trash2 size={13} /></button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {/* Botão nova tarefa no rodapé, estilo Notion */}
+                                <button onClick={() => setIsModalOpen(true)} style={{
+                                    width: '100%', padding: '10px 12px', background: 'none', border: 'none',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                                    color: 'var(--text-muted)', fontSize: 12, borderTop: '1px solid rgba(255,255,255,0.04)',
+                                    transition: 'background 0.12s',
+                                }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                >
+                                    <Plus size={14} /> Adicionar Nova Tarefa
+                                </button>
                             </div>
-                            <div ref={listParent} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {filtered.length === 0 ? (
-                                    <p style={{ textAlign: "center", padding: 48, color: "var(--text-muted)" }}>Nenhuma tarefa encontrada</p>
-                                ) : filtered.map(t => (
-                                    <TaskItem
-                                        key={t.id}
-                                        task={t}
-                                        onToggle={toggleTask}
-                                        onEdit={setEditingTask}
-                                        onDelete={deleteTask}
-                                    />
-                                ))}
-                            </div>
-                        </>
-                    ) : view === "calendar" ? (() => {
+                        );
+                    })() : view === "calendar" ? (() => {
                         const { year, month } = calDate;
                         const today = new Date();
                         const todayStr = today.toISOString().split('T')[0];
