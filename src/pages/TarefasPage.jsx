@@ -653,25 +653,24 @@ export function TarefasPage() {
                                         const isToday = dayStr === todayStr;
                                         const dayTasks = tasksByDay[String(day)] || [];
                                         return (
-                                            <div key={day} style={{
-                                                minHeight: 80, borderRadius: 8, padding: '6px 8px',
+                                                            <div key={day} style={{
+                                                minHeight: 120, borderRadius: 8, padding: '8px 10px',
                                                 background: isToday ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
                                                 border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.05)',
-                                                display: 'flex', flexDirection: 'column', gap: 3,
+                                                display: 'flex', flexDirection: 'column', gap: 4,
                                             }}>
-                                                <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--primary)' : 'var(--text-dim)', alignSelf: 'flex-end' }}>{day}</span>
-                                                {dayTasks.slice(0, 3).map(t => (
+                                                <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--primary)' : 'var(--text-dim)', alignSelf: 'flex-end', marginBottom: 2 }}>{day}</span>
+                                                {dayTasks.map(t => (
                                                     <div key={t.id} title={t.titulo} style={{
-                                                        fontSize: 10, padding: '2px 5px', borderRadius: 4,
+                                                        fontSize: 11, padding: '3px 7px', borderRadius: 4,
                                                         background: statusColor[t.status] ? `${statusColor[t.status]}22` : 'rgba(255,255,255,0.08)',
-                                                        borderLeft: `2px solid ${statusColor[t.status] || '#888'}`,
-                                                        color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                        borderLeft: `3px solid ${statusColor[t.status] || '#888'}`,
+                                                        color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                                         cursor: 'pointer', textDecoration: t.status === 'concluida' ? 'line-through' : 'none',
                                                     }} onClick={() => setEditingTask(t)}>
                                                         {t.titulo}
                                                     </div>
                                                 ))}
-                                                {dayTasks.length > 3 && <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center' }}>+{dayTasks.length - 3}</span>}
                                             </div>
                                         );
                                     })}
