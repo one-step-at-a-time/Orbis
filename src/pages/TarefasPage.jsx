@@ -3,7 +3,8 @@ import { useAutoAnimate } from '@formkit/auto-animate/react';
 import Typewriter from 'typewriter-effect';
 import {
     LayoutList, Columns, Plus, Circle, Clock, CheckCircle2, AlertCircle,
-    Sparkles, Send, Bot, User, Loader, Settings, Check, Trash2, Pencil
+    Sparkles, Send, Bot, User, Loader, Settings, Check, Trash2, Pencil,
+    CalendarDays, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Badge } from '../components/Common';
 import { Modal } from '../components/Modal';
@@ -279,6 +280,7 @@ export function TarefasPage() {
     const { gainXP } = usePlayer();
     const [view, setView]       = useState("list");
     const [filter, setFilter]   = useState("todas");
+    const [calDate, setCalDate] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask,  setEditingTask]  = useState(null);
     const [listParent] = useAutoAnimate();
@@ -440,7 +442,7 @@ export function TarefasPage() {
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     {activeTab === 'tarefas' && (
                         <div style={{ display: "flex", background: "var(--bg-secondary)", borderRadius: 8, padding: 3 }}>
-                            {[{ k: "list", icon: LayoutList }, { k: "kanban", icon: Columns }].map(v => (
+                            {[{ k: "list", icon: LayoutList }, { k: "kanban", icon: Columns }, { k: "calendar", icon: CalendarDays }].map(v => (
                                 <button key={v.k} onClick={() => setView(v.k)} style={{ padding: 8, borderRadius: 6, background: view === v.k ? "var(--primary)" : "transparent", border: "none", cursor: "pointer", color: view === v.k ? "white" : "var(--text-muted)", display: "flex" }}>
                                     <v.icon size={16} />
                                 </button>
@@ -502,7 +504,93 @@ export function TarefasPage() {
                                 ))}
                             </div>
                         </>
-                    ) : (
+                    ) : view === "calendar" ? (() => {
+                        const { year, month } = calDate;
+                        const today = new Date();
+                        const todayStr = today.toISOString().split('T')[0];
+                        const firstDay = new Date(year, month, 1).getDay();
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+                        const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+                        const tasksByDay = {};
+                        tasks.forEach(t => {
+                            if (t.dataPrazo) {
+                                const day = t.dataPrazo.slice(8, 10).replace(/^0/, '');
+                                const taskMonth = t.dataPrazo.slice(0, 7);
+                                const calMonth2 = `${year}-${String(month + 1).padStart(2, '0')}`;
+                                if (taskMonth === calMonth2) {
+                                    if (!tasksByDay[day]) tasksByDay[day] = [];
+                                    tasksByDay[day].push(t);
+                                }
+                            }
+                        });
+                        const cells = [];
+                        for (let i = 0; i < firstDay; i++) cells.push(null);
+                        for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+                        const statusColor = { pendente: '#f59e0b', fazendo: '#3b82f6', concluida: '#22c55e', atrasada: '#ef4444' };
+                        return (
+                            <div className="card" style={{ padding: 20 }}>
+                                {/* Navegação do mês */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                                    <button onClick={() => setCalDate(p => { const d = new Date(p.year, p.month - 1); return { year: d.getFullYear(), month: d.getMonth() }; })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 6, borderRadius: 6, display: 'flex' }}>
+                                        <ChevronLeft size={18} />
+                                    </button>
+                                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, fontSize: 14, letterSpacing: 1 }}>
+                                        {monthNames[month]} {year}
+                                    </span>
+                                    <button onClick={() => setCalDate(p => { const d = new Date(p.year, p.month + 1); return { year: d.getFullYear(), month: d.getMonth() }; })} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: 6, borderRadius: 6, display: 'flex' }}>
+                                        <ChevronRight size={18} />
+                                    </button>
+                                </div>
+                                {/* Cabeçalho dias da semana */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
+                                    {dayNames.map(d => (
+                                        <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '4px 0', fontFamily: "'JetBrains Mono', monospace", letterSpacing: 1 }}>{d}</div>
+                                    ))}
+                                </div>
+                                {/* Grid de dias */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                                    {cells.map((day, i) => {
+                                        if (!day) return <div key={`empty-${i}`} />;
+                                        const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                        const isToday = dayStr === todayStr;
+                                        const dayTasks = tasksByDay[String(day)] || [];
+                                        return (
+                                            <div key={day} style={{
+                                                minHeight: 80, borderRadius: 8, padding: '6px 8px',
+                                                background: isToday ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.03)',
+                                                border: isToday ? '1px solid rgba(99,102,241,0.4)' : '1px solid rgba(255,255,255,0.05)',
+                                                display: 'flex', flexDirection: 'column', gap: 3,
+                                            }}>
+                                                <span style={{ fontSize: 12, fontWeight: isToday ? 700 : 400, color: isToday ? 'var(--primary)' : 'var(--text-dim)', alignSelf: 'flex-end' }}>{day}</span>
+                                                {dayTasks.slice(0, 3).map(t => (
+                                                    <div key={t.id} title={t.titulo} style={{
+                                                        fontSize: 10, padding: '2px 5px', borderRadius: 4,
+                                                        background: statusColor[t.status] ? `${statusColor[t.status]}22` : 'rgba(255,255,255,0.08)',
+                                                        borderLeft: `2px solid ${statusColor[t.status] || '#888'}`,
+                                                        color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                        cursor: 'pointer', textDecoration: t.status === 'concluida' ? 'line-through' : 'none',
+                                                    }} onClick={() => setEditingTask(t)}>
+                                                        {t.titulo}
+                                                    </div>
+                                                ))}
+                                                {dayTasks.length > 3 && <span style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center' }}>+{dayTasks.length - 3}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {/* Legenda */}
+                                <div style={{ display: 'flex', gap: 12, marginTop: 16, flexWrap: 'wrap' }}>
+                                    {Object.entries({ pendente: 'Pendente', fazendo: 'Fazendo', concluida: 'Concluída', atrasada: 'Atrasada' }).map(([k, l]) => (
+                                        <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-muted)' }}>
+                                            <div style={{ width: 8, height: 8, borderRadius: 2, background: statusColor[k] }} />
+                                            {l}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })() : (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
                             {kanbanCols.map(col => (
                                 <div
